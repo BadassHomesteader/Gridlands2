@@ -47,6 +47,18 @@ Gridlands2/
 three.js loads from CDN via import map (use `three@0.160.0` modules build). No bundler,
 no npm runtime deps (playwright is invoked via `npx`, already installed globally).
 
+## Fixed conventions (all modules MUST agree)
+
+- Pointy-top hexes, axial coords. World position: `x = size*(√3*q + √3/2*r)`, `z = size*(3/2*r)` (same as GL1).
+- Neighbor direction order: `[[1,0],[1,-1],[0,-1],[-1,0],[-1,1],[0,1]]` — edge `i` faces neighbor `i`, facing edge is `(i+3)%6`.
+- Rotation: `edges.unshift(edges.pop())` rotates the tile by one step; dock/feature edge indices rotate identically.
+- Tile shape: `{ id, archetype, edges: [t0..t5], dockEdges: [i...], flag: null|{...}, seed, rotation }`.
+  Dock is a modifier on an Ocean edge (DESIGN §2), not a 10th terrain.
+- `CONFIG` (DESIGN §11) lives in `src/core/config.js` — single source for every tunable number.
+- Board groups/networks: recompute by flood-fill after each placement (boards are ≤~150 tiles —
+  favor simple recomputation over incremental caches).
+- Undo: snapshot `game.serialize()` before each placement; single-level restore (GL1 parity).
+
 ## Core API contract
 
 ```js
