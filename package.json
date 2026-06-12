@@ -1,0 +1,13 @@
+{
+  "name": "gridlands2",
+  "version": "0.1.0",
+  "description": "Gridlands 2 — cozy hex tile-laying game with mountains, oceans, and shipping lanes",
+  "type": "module",
+  "scripts": {
+    "serve": "node tools/serve.mjs",
+    "test": "node --test test/",
+    "sim": "node sim/balance.mjs",
+    "shot": "node tools/screenshot.mjs"
+  },
+  "license": "MIT"
+}
