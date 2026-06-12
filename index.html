@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gridlands 2 — Tideline</title>
+<style>
+  :root {
+    --ink: #4a3a2a;
+    --ink-soft: #84715a;
+    --glass: rgba(255, 250, 242, 0.68);
+    --glass-strong: rgba(255, 252, 246, 0.86);
+    --glass-border: rgba(255, 255, 255, 0.6);
+    --sea: #2a7fb8;
+    --sea-deep: #1e6296;
+    --gold: #d9a441;
+    --grass: #5b8930;
+    --clay: #c0533a;
+    --plum: #8e6bb8;
+    --shadow: 0 8px 28px rgba(90, 62, 30, 0.18);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    color: var(--ink);
+    background: #f3e2c8;
+    -webkit-font-smoothing: antialiased;
+  }
+  button { font: inherit; color: inherit; cursor: pointer; }
+  .hidden { display: none !important; }
+
+  #game-canvas {
+    position: fixed; inset: 0;
+    width: 100vw; height: 100vh;
+    display: block;
+    background: #f3e2c8;
+    touch-action: none;
+  }
+
+  /* golden-hour haze over the sea horizon (shell-level; renderer untouched) */
+  #sky-glow {
+    position: fixed; inset: 0; z-index: 5; pointer-events: none;
+    background:
+      radial-gradient(70% 48% at 72% -6%, rgba(255, 206, 138, 0.42), transparent 70%),
+      linear-gradient(180deg, rgba(255, 198, 126, 0.30), rgba(255, 198, 126, 0.07) 38%, transparent 58%);
+  }
+
+  /* ---------- shared glass panel ---------- */
+  .glass {
+    background: var(--glass);
+    backdrop-filter: blur(14px) saturate(1.2);
+    -webkit-backdrop-filter: blur(14px) saturate(1.2);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+  }
+
+  /* ---------- start screen ---------- */
+  #start-screen {
+    position: fixed; inset: 0; z-index: 40;
+    display: flex; align-items: center; justify-content: center;
+    background:
+      radial-gradient(120% 90% at 50% -10%, rgba(255, 244, 214, 0.95), rgba(255, 244, 214, 0) 60%),
+      linear-gradient(180deg, #f6e7cd 0%, #f2dec0 46%, #cfe3e8 78%, #a8cfdd 100%);
+  }
+  #start-card {
+    width: min(440px, 92vw);
+    padding: 40px 40px 32px;
+    text-align: center;
+    animation: cardIn 0.7s cubic-bezier(.2,.9,.3,1.2);
+  }
+  @keyframes cardIn { from { opacity: 0; transform: translateY(18px) scale(0.97); } }
+  #logo-grid {
+    font-size: 44px; font-weight: 800; letter-spacing: 0.12em;
+    line-height: 1; color: var(--ink); margin: 0;
+  }
+  #logo-grid .two { color: var(--sea); }
+  #logo-tide {
+    margin: 12px 0 4px;
+    font-size: 15px; font-weight: 600; letter-spacing: 0.62em; text-indent: 0.62em;
+    color: var(--sea-deep); text-transform: uppercase;
+  }
+  .tideline-rule {
+    height: 10px; margin: 6px auto 26px; width: 220px;
+    background:
+      radial-gradient(8px 8px at 10px 6px, var(--gold) 38%, transparent 42%),
+      repeating-linear-gradient(100deg, transparent 0 6px, rgba(42,127,184,.55) 6px 14px, transparent 14px 20px);
+    border-bottom: 2px solid rgba(42, 127, 184, 0.5);
+    border-radius: 999px;
+  }
+  .start-row { margin: 18px 0; text-align: left; }
+  .start-row label { font-size: 13px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-soft); }
+  #tile-count-row output { float: right; font-weight: 800; color: var(--sea-deep); font-size: 14px; }
+  input[type="range"] {
+    width: 100%; margin-top: 10px; appearance: none; height: 6px; border-radius: 999px;
+    background: linear-gradient(90deg, var(--gold), var(--sea));
+    outline: none;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    appearance: none; width: 22px; height: 22px; border-radius: 50%;
+    background: #fffdf8; border: 2px solid var(--sea); box-shadow: 0 2px 6px rgba(60,40,20,.25);
+  }
+  .toggle-row { display: flex; align-items: center; justify-content: space-between; }
+  .toggle-sub { font-size: 12px; color: var(--ink-soft); margin-top: 3px; font-weight: 500; text-transform: none; letter-spacing: 0; }
+  .switch { position: relative; width: 52px; height: 28px; flex: none; }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .switch .knob {
+    position: absolute; inset: 0; border-radius: 999px;
+    background: rgba(120, 100, 75, 0.3); transition: background .2s;
+  }
+  .switch .knob::after {
+    content: ""; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px;
+    border-radius: 50%; background: #fffdf8; box-shadow: 0 1px 4px rgba(0,0,0,.25); transition: left .2s;
+  }
+  .switch input:checked + .knob { background: var(--sea); }
+  .switch input:checked + .knob::after { left: 27px; }
+  #btn-start {
+    margin-top: 14px; width: 100%; padding: 14px;
+    border: none; border-radius: 14px;
+    font-size: 18px; font-weight: 800; letter-spacing: 0.08em; color: #fffdf8;
+    background: linear-gradient(135deg, #3b94cf, var(--sea-deep));
+    box-shadow: 0 6px 18px rgba(42, 127, 184, 0.4);
+    transition: transform .12s, box-shadow .12s;
+  }
+  #btn-start:hover { transform: translateY(-2px); box-shadow: 0 9px 22px rgba(42,127,184,.45); }
+  #start-hints { margin-top: 18px; font-size: 12px; color: var(--ink-soft); line-height: 1.7; }
+  #start-hints b { color: var(--ink); font-weight: 700; }
+
+  /* ---------- HUD ---------- */
+  #hud { position: fixed; inset: 0; z-index: 10; pointer-events: none; }
+  #hud > * { pointer-events: none; }
+  #hud .glass, #hud button { pointer-events: auto; }
+
+  #score-panel {
+    position: absolute; top: 18px; left: 18px;
+    padding: 14px 20px 12px; min-width: 190px;
+  }
+  #score-panel .label { font-size: 11px; font-weight: 800; letter-spacing: 0.18em; color: var(--ink-soft); }
+  #score {
+    font-size: 38px; font-weight: 800; line-height: 1.05;
+    font-variant-numeric: tabular-nums; color: var(--ink);
+    transition: color .25s;
+  }
+  #score.bump { animation: scoreBump .35s; }
+  @keyframes scoreBump { 35% { transform: scale(1.09); color: var(--gold); } }
+  .pills { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+  .pill {
+    font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px;
+    background: rgba(255, 255, 255, 0.55); border: 1px solid rgba(255,255,255,.6);
+    color: var(--ink-soft);
+  }
+  .pill b { color: var(--ink); }
+  #streak-pill.live { color: #7a5b16; background: rgba(248, 216, 134, 0.65); }
+  #streak-dots { display: inline-flex; gap: 3px; margin-left: 6px; vertical-align: 1px; }
+  #streak-dots i {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: rgba(120, 100, 75, 0.25);
+  }
+  #streak-dots i.on { background: var(--gold); }
+
+  /* ---------- stage banner + toasts ---------- */
+  #stage-banner {
+    position: absolute; top: 16%; left: 50%; transform: translateX(-50%);
+    text-align: center; opacity: 0; pointer-events: none;
+  }
+  #stage-banner.show { animation: bannerIn 3.4s ease forwards; }
+  @keyframes bannerIn {
+    0% { opacity: 0; transform: translateX(-50%) translateY(14px) scale(.96); }
+    12% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+    80% { opacity: 1; }
+    100% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+  }
+  #stage-banner .title {
+    font-size: 42px; font-weight: 800; letter-spacing: 0.14em;
+    color: #fff4dd;
+    text-shadow: 0 2px 18px rgba(60, 36, 12, 0.55), 0 1px 2px rgba(50, 30, 10, 0.6);
+  }
+  #stage-banner .sub {
+    margin-top: 6px; font-size: 15px; font-weight: 600; letter-spacing: 0.22em;
+    text-transform: uppercase; color: #ffd9a0;
+    text-shadow: 0 1px 10px rgba(60, 36, 12, 0.6);
+  }
+  #toasts {
+    position: absolute; top: 18px; left: 50%; transform: translateX(-50%);
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+  }
+  .toast {
+    padding: 9px 18px; border-radius: 999px;
+    background: var(--glass-strong); border: 1px solid var(--glass-border);
+    box-shadow: var(--shadow);
+    font-size: 14px; font-weight: 600; color: var(--ink);
+    animation: toastIn 3.4s ease forwards;
+  }
+  .toast.tip { color: var(--sea-deep); }
+  .toast.tip::before { content: "tip"; font-size: 10px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--gold); margin-right: 8px; }
+  @keyframes toastIn {
+    0% { opacity: 0; transform: translateY(-8px); }
+    8% { opacity: 1; transform: translateY(0); }
+    86% { opacity: 1; }
+    100% { opacity: 0; transform: translateY(-6px); }
+  }
+
+  /* ---------- quest panel ---------- */
+  #quest-panel {
+    position: absolute; top: 18px; right: 18px;
+    width: 272px; max-height: calc(100vh - 220px);
+    padding: 14px 14px 10px; overflow-y: auto;
+  }
+  #quest-panel h2 {
+    margin: 0 0 10px; font-size: 12px; font-weight: 800;
+    letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-soft);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  #reroll-count { font-size: 11px; font-weight: 700; color: var(--sea-deep); letter-spacing: 0; text-transform: none; }
+  .quest {
+    position: relative; padding: 8px 10px; margin-bottom: 8px; border-radius: 12px;
+    background: rgba(255, 255, 255, 0.5); border: 1px solid rgba(255,255,255,.55);
+  }
+  .quest .qrow { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; }
+  .quest .qname { font-size: 13px; font-weight: 700; }
+  .quest .qmeta { font-size: 11px; font-weight: 700; color: var(--ink-soft); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .quest .qreward { font-size: 11px; color: var(--ink-soft); margin-top: 2px; }
+  .bar {
+    height: 6px; margin-top: 6px; border-radius: 999px;
+    background: rgba(120, 100, 75, 0.18); overflow: hidden;
+  }
+  .bar .fill {
+    height: 100%; border-radius: 999px; width: 0%;
+    background: linear-gradient(90deg, #79b34c, var(--grass));
+    transition: width .5s cubic-bezier(.2,.8,.3,1);
+  }
+  .quest.epic {
+    background: linear-gradient(135deg, rgba(255, 240, 205, 0.85), rgba(250, 224, 166, 0.6));
+    border: 1px solid rgba(217, 164, 65, 0.55);
+  }
+  .quest.epic .qname { color: #8a6312; }
+  .quest.epic .bar .fill { background: linear-gradient(90deg, #ecc364, var(--gold)); }
+  .quest.epic .epic-tag { font-size: 9px; font-weight: 800; letter-spacing: .14em; color: var(--gold); text-transform: uppercase; }
+  .quest.flag { background: rgba(235, 244, 252, 0.6); border-color: rgba(150, 190, 220, 0.5); }
+  .quest.flag .bar .fill { background: linear-gradient(90deg, #6db1dc, var(--sea)); }
+  .quest.done { opacity: .65; }
+  .btn-reroll {
+    border: none; border-radius: 8px; padding: 1px 7px; font-size: 13px; line-height: 1.4;
+    background: rgba(42, 127, 184, 0.12); color: var(--sea-deep); font-weight: 700;
+  }
+  .btn-reroll:hover { background: rgba(42, 127, 184, 0.25); }
+
+  /* ---------- bottom tray ---------- */
+  #tray {
+    position: absolute; left: 18px; bottom: 18px;
+    display: flex; align-items: flex-end; gap: 14px;
+    padding: 14px 16px;
+  }
+  .tray-block { text-align: center; }
+  .tray-label { font-size: 10px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-soft); margin-bottom: 6px; }
+  #preview-current { display: block; }
+  #preview-current canvas, .next-tiles canvas {
+    display: block; border-radius: 12px;
+    background: rgba(255,255,255,.4);
+  }
+  .next-tiles { display: flex; gap: 8px; }
+  .tray-buttons { display: flex; flex-direction: column; gap: 7px; margin-left: 6px; }
+  .tray-buttons button {
+    border: 1px solid rgba(255,255,255,.65); border-radius: 11px;
+    padding: 7px 14px; font-size: 13px; font-weight: 700;
+    background: rgba(255, 255, 255, 0.55); color: var(--ink);
+    transition: background .15s, transform .1s;
+    white-space: nowrap;
+  }
+  .tray-buttons button:hover { background: rgba(255,255,255,.85); transform: translateY(-1px); }
+  .tray-buttons button .key {
+    display: inline-block; min-width: 16px; padding: 0 3px; margin-right: 6px;
+    border-radius: 5px; border: 1px solid rgba(120,100,75,.35);
+    font-size: 10px; font-weight: 800; color: var(--ink-soft); text-align: center;
+  }
+  #btn-discard .cost { color: var(--clay); font-weight: 800; }
+  #rotate-hint { font-size: 10px; color: var(--ink-soft); margin-top: 5px; font-weight: 600; }
+
+  /* ---------- score popups ---------- */
+  #popups { position: fixed; inset: 0; pointer-events: none; z-index: 20; }
+  .popup {
+    position: absolute; transform: translate(-50%, -50%);
+    font-size: 19px; font-weight: 800; white-space: nowrap;
+    text-shadow: 0 1px 0 #fff, 0 2px 10px rgba(255, 250, 235, 0.95);
+    animation: popUp 1.5s ease-out forwards;
+  }
+  .popup small { font-size: 12px; font-weight: 700; opacity: .85; margin-left: 4px; }
+  @keyframes popUp {
+    0% { opacity: 0; transform: translate(-50%, -30%) scale(.7); }
+    14% { opacity: 1; transform: translate(-50%, -50%) scale(1.08); }
+    25% { transform: translate(-50%, -56%) scale(1); }
+    75% { opacity: 1; }
+    100% { opacity: 0; transform: translate(-50%, -160%); }
+  }
+  .popup.edges { color: #3f7d2c; }
+  .popup.streak { color: #c08a18; }
+  .popup.perfect { color: #e8842c; font-size: 24px; }
+  .popup.structures { color: var(--sea-deep); }
+  .popup.quests { color: var(--plum); }
+  .popup.bad { color: var(--clay); }
+
+  /* ---------- game over ---------- */
+  #gameover-screen {
+    position: fixed; inset: 0; z-index: 50;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(58, 38, 22, 0.38);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+  }
+  #gameover-card {
+    width: min(520px, 94vw); max-height: 92vh; overflow-y: auto;
+    padding: 30px 34px 26px; text-align: center;
+    background: var(--glass-strong);
+    animation: cardIn .6s cubic-bezier(.2,.9,.3,1.15);
+  }
+  #go-title { margin: 0; font-size: 13px; font-weight: 800; letter-spacing: .3em; text-transform: uppercase; color: var(--gold); }
+  #go-sub { margin: 6px 0 2px; font-size: 22px; font-weight: 800; color: var(--ink); }
+  #go-score { font-size: 56px; font-weight: 800; color: var(--sea-deep); font-variant-numeric: tabular-nums; line-height: 1.1; }
+  #go-score-label { font-size: 11px; font-weight: 800; letter-spacing: .2em; color: var(--ink-soft); text-transform: uppercase; margin-bottom: 16px; }
+  #go-channels { margin: 10px 0 4px; text-align: left; }
+  .go-row { display: grid; grid-template-columns: 150px 1fr 64px; gap: 10px; align-items: center; margin: 7px 0; opacity: 0; animation: rowIn .5s ease forwards; }
+  @keyframes rowIn { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; } }
+  .go-row .name { font-size: 13px; font-weight: 700; color: var(--ink); }
+  .go-row .bar { margin-top: 0; height: 8px; }
+  .go-row .val { font-size: 13px; font-weight: 800; text-align: right; font-variant-numeric: tabular-nums; }
+  #go-structures {
+    margin: 18px 0 6px; padding: 12px; border-radius: 14px;
+    background: rgba(255, 255, 255, 0.55); border: 1px solid rgba(255,255,255,.6);
+    display: grid; grid-template-columns: 1fr 1fr; gap: 7px 16px; text-align: left;
+  }
+  .go-stat { font-size: 12.5px; color: var(--ink-soft); font-weight: 600; }
+  .go-stat b { color: var(--ink); font-weight: 800; font-variant-numeric: tabular-nums; }
+  #btn-again {
+    margin-top: 16px; padding: 12px 38px; border: none; border-radius: 13px;
+    font-size: 16px; font-weight: 800; letter-spacing: .06em; color: #fffdf8;
+    background: linear-gradient(135deg, #3b94cf, var(--sea-deep));
+    box-shadow: 0 6px 16px rgba(42,127,184,.4);
+  }
+  #btn-again:hover { transform: translateY(-1px); }
+</style>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+</head>
+<body>
+
+<canvas id="game-canvas"></canvas>
+<div id="sky-glow" class="hidden"></div>
+
+<div id="hud" class="hidden">
+  <div id="score-panel" class="glass">
+    <div class="label">SCORE</div>
+    <div id="score">0</div>
+    <div class="pills">
+      <span class="pill">Tiles <b id="stack">45</b></span>
+      <span class="pill" id="streak-pill">Streak <b id="streak">0</b><span id="streak-dots"></span></span>
+    </div>
+  </div>
+
+  <div id="stage-banner"><div class="title"></div><div class="sub"></div></div>
+  <div id="toasts"></div>
+
+  <div id="quest-panel" class="glass">
+    <h2>Quests <span id="reroll-count"></span></h2>
+    <div id="quest-list"></div>
+  </div>
+
+  <div id="tray" class="glass">
+    <div class="tray-block">
+      <div class="tray-label">In hand</div>
+      <div id="preview-current"><canvas id="cv-current" width="96" height="96"></canvas></div>
+      <div id="rotate-hint">R rotates</div>
+    </div>
+    <div class="tray-block">
+      <div class="tray-label">Next</div>
+      <div class="next-tiles">
+        <canvas id="cv-next1" width="58" height="58"></canvas>
+        <canvas id="cv-next2" width="58" height="58"></canvas>
+      </div>
+    </div>
+    <div class="tray-buttons">
+      <button id="btn-discard"><span class="key">D</span>Discard <span class="cost">−25</span></button>
+      <button id="btn-undo"><span class="key">Z</span>Undo</button>
+      <button id="btn-mute"><span class="key">M</span><span id="mute-label">Sound on</span></button>
+    </div>
+  </div>
+</div>
+
+<div id="popups"></div>
+
+<div id="start-screen">
+  <div id="start-card" class="glass">
+    <h1 id="logo-grid">GRIDLANDS <span class="two">2</span></h1>
+    <div id="logo-tide">Tideline</div>
+    <div class="tideline-rule"></div>
+
+    <div class="start-row" id="tile-count-row">
+      <label for="tile-count">Tile stack <output id="tile-count-out">45</output></label>
+      <input type="range" id="tile-count" min="15" max="100" step="1" value="45">
+    </div>
+
+    <div class="start-row toggle-row">
+      <div>
+        <label for="zen-toggle">Zen mode</label>
+        <div class="toggle-sub">Endless tiles — the tide never runs out</div>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="zen-toggle">
+        <span class="knob"></span>
+      </label>
+    </div>
+
+    <button id="btn-start">Begin the Tide</button>
+
+    <div id="start-hints">
+      <b>Click</b> place &nbsp;·&nbsp; <b>R</b> rotate &nbsp;·&nbsp; <b>arrows / right-drag</b> pan<br>
+      <b>scroll</b> zoom &nbsp;·&nbsp; <b>Ctrl+Z</b> undo &nbsp;·&nbsp; <b>D</b> discard &nbsp;·&nbsp; <b>M</b> mute
+    </div>
+  </div>
+</div>
+
+<div id="gameover-screen" class="hidden">
+  <div id="gameover-card" class="glass">
+    <h2 id="go-title">Curtain Call</h2>
+    <div id="go-sub">The stack is spent</div>
+    <div id="go-score">0</div>
+    <div id="go-score-label">Final score</div>
+    <div id="go-channels"></div>
+    <div id="go-structures"></div>
+    <button id="btn-again">Play Again</button>
+  </div>
+</div>
+
+<script type="module" src="src/main.js"></script>
+</body>
+</html>
