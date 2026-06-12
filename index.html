@@ -146,12 +146,38 @@
   @keyframes scoreBump { 35% { transform: scale(1.09); color: var(--gold); } }
   .pills { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
   .pill {
-    font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px;
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 12.5px; font-weight: 700; padding: 3px 10px; border-radius: 999px;
     background: rgba(255, 255, 255, 0.55); border: 1px solid rgba(255,255,255,.6);
     color: var(--ink-soft);
+    transition: background .3s, color .3s;
   }
   .pill b { color: var(--ink); }
   #streak-pill.live { color: #7a5b16; background: rgba(248, 216, 134, 0.65); }
+  #streak-pill.live b { color: #6b4c0a; }
+  #streak-pill.pulse { animation: streakPulse .55s cubic-bezier(.2, .9, .3, 1.35); }
+  @keyframes streakPulse {
+    0% { transform: scale(1); }
+    35% {
+      transform: scale(1.22);
+      background: rgba(255, 211, 100, 0.95);
+      box-shadow: 0 0 0 4px rgba(248, 196, 86, 0.35), 0 0 20px rgba(248, 196, 86, 0.8);
+    }
+    100% { transform: scale(1); }
+  }
+  #streak-pill.broken {
+    color: #8d8579; background: rgba(168, 160, 148, 0.38);
+    animation: streakBreak .65s ease;
+  }
+  #streak-pill.broken b { color: #8d8579; }
+  @keyframes streakBreak {
+    0%, 100% { transform: translateX(0); }
+    15% { transform: translateX(-5px); }
+    30% { transform: translateX(5px); }
+    45% { transform: translateX(-4px); }
+    60% { transform: translateX(3px); }
+    75% { transform: translateX(-2px); }
+  }
   #streak-dots { display: inline-flex; gap: 3px; margin-left: 6px; vertical-align: 1px; }
   #streak-dots i {
     width: 6px; height: 6px; border-radius: 50%;
@@ -173,13 +199,13 @@
   }
   #stage-banner .title {
     font-size: 42px; font-weight: 800; letter-spacing: 0.14em;
-    color: #fff4dd;
-    text-shadow: 0 2px 18px rgba(60, 36, 12, 0.55), 0 1px 2px rgba(50, 30, 10, 0.6);
+    color: #6e4a14;
+    text-shadow: 0 1px 0 rgba(255, 252, 240, 0.85), 0 3px 20px rgba(255, 244, 214, 0.9);
   }
   #stage-banner .sub {
-    margin-top: 6px; font-size: 15px; font-weight: 600; letter-spacing: 0.22em;
-    text-transform: uppercase; color: #ffd9a0;
-    text-shadow: 0 1px 10px rgba(60, 36, 12, 0.6);
+    margin-top: 6px; font-size: 15px; font-weight: 700; letter-spacing: 0.22em;
+    text-transform: uppercase; color: #a8761f;
+    text-shadow: 0 1px 0 rgba(255, 252, 240, 0.7), 0 1px 12px rgba(255, 248, 228, 0.9);
   }
   #toasts {
     position: absolute; top: 18px; left: 50%; transform: translateX(-50%);
@@ -281,23 +307,28 @@
   #popups { position: fixed; inset: 0; pointer-events: none; z-index: 20; }
   .popup {
     position: absolute; transform: translate(-50%, -50%);
-    font-size: 19px; font-weight: 800; white-space: nowrap;
-    text-shadow: 0 1px 0 #fff, 0 2px 10px rgba(255, 250, 235, 0.95);
-    animation: popUp 1.5s ease-out forwards;
+    font-size: 29px; font-weight: 900; white-space: nowrap; text-align: center;
+    text-shadow:
+      0 1px 0 #fff, 0 -1px 0 #fff, 1px 0 0 #fff, -1px 0 0 #fff,
+      0 0 8px rgba(255, 255, 255, 0.9), 0 3px 18px rgba(255, 250, 235, 0.95);
+    animation: popUp 1.8s ease-out forwards;
   }
-  .popup small { font-size: 12px; font-weight: 700; opacity: .85; margin-left: 4px; }
+  .popup small {
+    display: block; font-size: 13px; font-weight: 800;
+    letter-spacing: .03em; opacity: .92; margin-top: -3px;
+  }
   @keyframes popUp {
-    0% { opacity: 0; transform: translate(-50%, -30%) scale(.7); }
-    14% { opacity: 1; transform: translate(-50%, -50%) scale(1.08); }
-    25% { transform: translate(-50%, -56%) scale(1); }
+    0% { opacity: 0; transform: translate(-50%, -30%) scale(.6); }
+    12% { opacity: 1; transform: translate(-50%, -52%) scale(1.18); }
+    24% { transform: translate(-50%, -56%) scale(1); }
     75% { opacity: 1; }
-    100% { opacity: 0; transform: translate(-50%, -160%); }
+    100% { opacity: 0; transform: translate(-50%, -170%); }
   }
-  .popup.edges { color: #3f7d2c; }
-  .popup.streak { color: #c08a18; }
-  .popup.perfect { color: #e8842c; font-size: 24px; }
-  .popup.structures { color: var(--sea-deep); }
-  .popup.quests { color: var(--plum); }
+  .popup.edges { color: #2e7c1d; }
+  .popup.streak { color: #b97f06; }
+  .popup.perfect { color: #e0701a; font-size: 38px; }
+  .popup.structures { color: #135a8e; }
+  .popup.quests { color: #7a4fb5; }
   .popup.bad { color: var(--clay); }
 
   /* ---------- game over ---------- */
@@ -385,7 +416,7 @@
       </div>
     </div>
     <div class="tray-buttons">
-      <button id="btn-discard"><span class="key">D</span>Discard <span class="cost">−25</span></button>
+      <button id="btn-discard"><span class="key">D</span>Discard <span class="cost">−45</span></button>
       <button id="btn-undo"><span class="key">Z</span>Undo</button>
       <button id="btn-mute"><span class="key">M</span><span id="mute-label">Sound on</span></button>
     </div>

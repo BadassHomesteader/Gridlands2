@@ -29,7 +29,9 @@ const ui = createUI({
       ui.toast('Quest rerolled');
       ui.refresh();
     } else {
-      ui.toast('No reroll available');
+      ui.toast(game.quests.rerolls > 0
+        ? 'No fresh quest fits this late in the run'
+        : 'No rerolls left');
     }
   },
 });
@@ -127,11 +129,12 @@ function onSceneEvent(ev) {
 
 function doDiscard() {
   if (!game || game.over || !game.currentTile) return;
+  const cost = game.config.valves.discardCost; // CONFIG is the authority (DESIGN §11)
   const res = game.discard();
   if (!res) return;
   audio.discard();
   const r = $('btn-discard').getBoundingClientRect();
-  ui.popup(r.left + r.width / 2, r.top - 12, '−25', 'bad');
+  ui.popup(r.left + r.width / 2, r.top - 12, `−${Math.abs(cost)}`, 'bad');
   for (const e of res.events) {
     if (e.type === 'windsShift') audio.breeze();
   }
@@ -242,6 +245,7 @@ function startGame({ seed, tileCount, zen }) {
   gameOverDone = false;
   audio.init();
   sceneH = initScene($('game-canvas'), game);
+  window.GL2.scene = sceneH; // test hook: real camera projection for tools/*.mjs
   sceneH.onCellClick(onCellClick);
   sceneH.onHover(onHover);
   sceneH.onEvent(onSceneEvent);
@@ -249,6 +253,9 @@ function startGame({ seed, tileCount, zen }) {
   $('gameover-screen').classList.add('hidden');
   $('sky-glow').classList.remove('hidden');
   ui.bindGame(game);
+  // keep HUD copy synced to CONFIG (the authority on every tunable number)
+  const costEl = $('btn-discard').querySelector('.cost');
+  if (costEl) costEl.textContent = `−${Math.abs(game.config.valves.discardCost)}`;
   ui.setMuted(audio.isMuted());
   ui.banner('pastoral');
   ui.toast('Lay your first tile — click anywhere');

@@ -4,7 +4,7 @@
 // Pure: all randomness via the injected rng.
 
 import { CONFIG } from './config.js';
-import { key, parseKey, neighbor, neighbors } from './hex.js';
+import { key, parseKey, neighbor } from './hex.js';
 import { isSoft } from './terrain.js';
 import { groups, largestGroupSize, traceNetworks } from './board.js';
 import { makeTile, rotateTile } from './tiles.js';
@@ -33,26 +33,47 @@ export function twinHarborsOnBoard(board) {
   return false;
 }
 
-// The Island: a connected region of >= minRegion land tiles whose every
-// neighbor cell holds a pure-water tile (all edges Oc/La). Coast/harbor tiles
-// have soft edges, so they read as land and extend the region instead.
+// The Island (DESIGN AMENDMENT, tuning round 1): a connected land region of
+// >= minRegion tiles that is fully sea-locked. Region = flood-fill over
+// non-sea tiles through LAND contact (facing edge pairs with no Oc/La side);
+// tiles touching only across water (Oc↔Oc, Ri↔Oc, La↔dock) are different
+// regions. Ringed = no region tile has a non-water edge facing empty space.
+// Rationale: the original "every neighbor cell holds a pure-water tile" ring
+// is unbuildable under the §3.1 legality matrix — every boundary tile of a
+// minimal region would need >= 4 water edges and no archetype has more than 3.
+// Under this reading the smallest island is a 7-tile flower of six 3-Oc
+// coasts around a soft center — a real epic, but a buildable one. An Oc edge
+// facing empty is already sea-locked (only Oc/Ri/La may ever meet it).
+const WATER = new Set(['OC', 'LA']);
+
+export function isSeaTile(t) {
+  return t.edges.every((e) => WATER.has(e));
+}
+
 export function isIslandRinged(board, minRegion = 3) {
-  const isSea = (t) => t.edges.every((e) => e === 'OC' || e === 'LA');
   const seen = new Set();
   for (const [start, t0] of board) {
-    if (seen.has(start) || isSea(t0)) continue;
+    if (seen.has(start) || isSeaTile(t0)) continue;
     const comp = [start];
     const compSet = new Set([start]);
     seen.add(start);
     let ringed = true;
     for (let i = 0; i < comp.length; i++) {
       const { q, r } = parseKey(comp[i]);
-      for (const n of neighbors(q, r)) {
+      const t = board.get(comp[i]);
+      for (let dir = 0; dir < 6; dir++) {
+        const n = neighbor(q, r, dir);
         const nk = key(n.q, n.r);
         if (compSet.has(nk)) continue;
         const nt = board.get(nk);
-        if (!nt) { ringed = false; continue; }
-        if (isSea(nt)) continue;
+        if (!nt) {
+          if (!WATER.has(t.edges[dir])) ringed = false;
+          continue;
+        }
+        if (isSeaTile(nt)) continue; // water contact: part of the moat
+        if (WATER.has(t.edges[dir]) || WATER.has(nt.edges[(dir + 3) % 6])) {
+          continue; // land tiles meeting across water: separate regions
+        }
         compSet.add(nk);
         seen.add(nk);
         comp.push(nk);
@@ -123,6 +144,7 @@ export function createQuestState(env, rng, config = CONFIG) {
     standard: [], epic: null, flags: [],
     completedStandard: 0,
     oneShotCompletions: {},
+    autoRefreshed: 0,
     rerolls: config.quests.rerolls.atStart,
     rerollsUsed: 0,
     flagsCompleted: 0,
@@ -206,7 +228,7 @@ function oneShotProgress(q, events, board) {
   return 0;
 }
 
-function transcontinentalSatisfied(board, events, epic) {
+export function transcontinentalSatisfied(board, events, epic) {
   const fires = events.filter((e) => e.type === 'tradeRoute');
   if (!fires.length) return false;
   const lanes = traceNetworks(board, 'LA');
@@ -229,10 +251,11 @@ function transcontinentalSatisfied(board, events, epic) {
 
 // Advance every quest after a committed placement. `result` is the
 // PlacementResult from scoring (board already contains result.tile).
-// Returns { completed, progressed, points, tiles }.
+// Returns { completed, progressed, refreshed, points, tiles }.
 export function processPlacement(state, env, result, rng, config = CONFIG) {
   const completed = [];
   const progressed = [];
+  const refreshed = [];
   let points = 0;
   let tiles = 0;
   const events = result.networkEvents || [];
@@ -268,6 +291,26 @@ export function processPlacement(state, env, result, rng, config = CONFIG) {
     state.standard.splice(i, 1);
     spawnStandardQuest(state, env, rng, config);
     i--;
+  }
+
+  // DESIGN AMENDMENT (tuning round 2): the dead-quest guard extends to
+  // ACTIVE quests. A quest whose remaining need exceeds the spawn allowance
+  // (target - progress > floor(tilesRemaining/divisor) + slack) could never
+  // have spawned in this position — keeping it is dealer error (cozy
+  // mandate). It is replaced for free; if no replacement fits, it stays.
+  if (config.quests.autoRefresh) {
+    const allowance = Math.floor((env.tilesRemaining ?? Infinity) / config.quests.deadGuardDivisor) +
+      (config.quests.autoRefreshSlack ?? 0);
+    for (let i = 0; i < state.standard.length; i++) {
+      const q = state.standard[i];
+      if (q.oneShot || q.target - q.progress <= allowance) continue;
+      const fresh = spawnStandardQuest(state, env, rng, config, q.id);
+      if (!fresh) continue;
+      state.standard.pop(); // spawn appended; move it into the dead slot
+      state.standard[i] = fresh;
+      state.autoRefreshed++;
+      refreshed.push({ old: { ...q }, fresh });
+    }
   }
 
   // epic
@@ -316,7 +359,7 @@ export function processPlacement(state, env, result, rng, config = CONFIG) {
   }
   state.flags = kept;
 
-  return { completed, progressed, points, tiles };
+  return { completed, progressed, refreshed, points, tiles };
 }
 
 export function activeQuests(state) {
@@ -337,7 +380,7 @@ const THEMES = {
   riversEnd: ['estuary', 'river'],
   twinHarbors: ['harbor', 'coast'],
   openTheRoute: ['lane', 'harbor'],
-  theIsland: ['coast', 'openOcean'],
+  theIsland: ['coast'], // the island's shoreline is built of coast tiles
   transcontinental: ['rail', 'lane', 'harbor'],
   crownTheRange: ['foothills', 'highMountain'],
 };

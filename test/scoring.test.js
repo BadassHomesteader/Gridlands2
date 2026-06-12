@@ -7,21 +7,24 @@ import {
   createScoringContext, scorePlacement, applyPlacement, endGameBonuses,
 } from '../src/core/scoring.js';
 import { tt, put, cfg, ALL } from './helpers.js';
+import { CONFIG } from '../src/core/config.js';
+
+const S = CONFIG.scoring;
 
 const RIVER = ['RI', 'GR', 'GR', 'RI', 'GR', 'GR'];
 
-test('soft like-match pays 10 per edge; mismatch pays 0 but stays legal', () => {
+test('soft like-match pays softMatch per edge; mismatch pays 0 but stays legal', () => {
   const b = createBoard();
   put(b, ALL('GR'), 0, 0);
   const ctx = createScoringContext();
   let res = applyPlacement(b, tt(ALL('GR')), 1, 0, ctx);
-  assert.equal(res.breakdown.edges, 10);
+  assert.equal(res.breakdown.edges, S.softMatch);
   res = applyPlacement(b, tt(ALL('FO')), 2, 0, ctx);
   assert.equal(res.breakdown.edges, 0);
   assert.equal(res.cleanliness, 'dirty');
 });
 
-test('streak: clean extends (+5 x length), neutral holds, dirty resets', () => {
+test('streak: clean extends (+per x length), neutral holds, dirty resets', () => {
   const b = createBoard();
   put(b, ALL('GR'), 0, 0);
   put(b, ALL('GR'), 1, 0);
@@ -30,13 +33,13 @@ test('streak: clean extends (+5 x length), neutral holds, dirty resets', () => {
   // 2 matched neighbors -> clean, streak 1
   let res = applyPlacement(b, tt(ALL('GR')), 1, -1, ctx);
   assert.equal(res.cleanliness, 'clean');
-  assert.equal(res.breakdown.streak, 5);
+  assert.equal(res.breakdown.streak, S.streak.per);
   assert.equal(res.combo, 1);
 
   // 2 matched neighbors -> clean, streak 2
   res = applyPlacement(b, tt(ALL('GR')), 0, -1, ctx);
   assert.equal(res.cleanliness, 'clean');
-  assert.equal(res.breakdown.streak, 10);
+  assert.equal(res.breakdown.streak, Math.min(2 * S.streak.per, S.streak.cap));
   assert.equal(ctx.streak, 2);
 
   // 1 neighbor, matched -> neutral: unchanged, pays nothing
@@ -53,18 +56,18 @@ test('streak: clean extends (+5 x length), neutral holds, dirty resets', () => {
   // clean again starts from 1
   res = applyPlacement(b, tt(ALL('GR')), 2, -1, ctx);
   assert.equal(res.cleanliness, 'clean');
-  assert.equal(res.breakdown.streak, 5);
+  assert.equal(res.breakdown.streak, S.streak.per);
 });
 
-test('streak pay caps at +50', () => {
+test('streak pay caps at streak.cap', () => {
   const b = createBoard();
   put(b, ALL('GR'), 0, 0);
   put(b, ALL('GR'), 1, 0);
   const ctx = createScoringContext();
-  ctx.streak = 11;
+  ctx.streak = 30;
   const res = applyPlacement(b, tt(ALL('GR')), 1, -1, ctx);
-  assert.equal(ctx.streak, 12);
-  assert.equal(res.breakdown.streak, 50);
+  assert.equal(ctx.streak, 31);
+  assert.equal(res.breakdown.streak, S.streak.cap);
 });
 
 test('lane end on plain ocean is legal-but-unmatched: neutral, not dirty', () => {
@@ -77,7 +80,7 @@ test('lane end on plain ocean is legal-but-unmatched: neutral, not dirty', () =>
   const res = applyPlacement(b, lane, 0, 0, ctx);
   assert.equal(res.cleanliness, 'neutral');
   assert.equal(ctx.streak, 3, 'streak untouched');
-  assert.equal(res.breakdown.edges, 15, 'only the Oc-Oc edge pays');
+  assert.equal(res.breakdown.edges, S.hardMatch, 'only the Oc-Oc edge pays');
   const laneEdge = res.edgeMatches.find((m) => m.dir === 0);
   assert.equal(laneEdge.matched, false);
 });
@@ -88,7 +91,7 @@ function ring(b, cq, cr) {
   }
 }
 
-test('perfect placement: 6 neighbors all matched; escalates 50/75/100, +1 tile', () => {
+test('perfect placement: 6 neighbors all matched; escalating ladder, +1 tile', () => {
   const b = createBoard();
   ring(b, 0, 0);
   ring(b, 4, 0);
@@ -97,13 +100,13 @@ test('perfect placement: 6 neighbors all matched; escalates 50/75/100, +1 tile',
 
   let res = applyPlacement(b, tt(ALL('GR')), 0, 0, ctx);
   assert.equal(res.perfect, true);
-  assert.equal(res.breakdown.perfect, 50);
-  assert.equal(res.tilesAwarded, 1);
+  assert.equal(res.breakdown.perfect, S.perfect.ladder[0]);
+  assert.equal(res.tilesAwarded, S.perfect.bonusTiles);
   assert.equal(res.edgeMatches.length, 6);
   assert.ok(res.edgeMatches.every((m) => m.matched));
 
   res = applyPlacement(b, tt(ALL('GR')), 4, 0, ctx);
-  assert.equal(res.breakdown.perfect, 75, 'consecutive perfect escalates');
+  assert.equal(res.breakdown.perfect, S.perfect.ladder[1], 'consecutive perfect escalates');
   assert.equal(ctx.consecutivePerfects, 2);
 
   // a non-perfect placement breaks the chain
@@ -113,7 +116,7 @@ test('perfect placement: 6 neighbors all matched; escalates 50/75/100, +1 tile',
 
   ctx.consecutivePerfects = 5; // deep chain: capped at the top of the ladder
   res = applyPlacement(b, tt(ALL('GR')), 8, 0, ctx);
-  assert.equal(res.breakdown.perfect, 100);
+  assert.equal(res.breakdown.perfect, S.perfect.ladder[S.perfect.ladder.length - 1]);
 });
 
 test('source junction pays once per river network (extras: edge points only)', () => {
@@ -122,13 +125,13 @@ test('source junction pays once per river network (extras: edge points only)', (
   const ctx = createScoringContext();
 
   let res = applyPlacement(b, tt(ALL('MT')), 1, 0, ctx);
-  assert.equal(res.breakdown.edges, 15);
-  assert.equal(res.breakdown.junctions, 30);
+  assert.equal(res.breakdown.edges, S.hardMatch);
+  assert.equal(res.breakdown.junctions, S.junction.source);
   assert.ok(res.networkEvents.some((e) => e.type === 'spring'));
   assert.ok(res.groupsExtended.some((g) => g.terrain === 'MT' && g.size === 1));
 
   res = applyPlacement(b, tt(ALL('MT')), -1, 0, ctx);
-  assert.equal(res.breakdown.edges, 15);
+  assert.equal(res.breakdown.edges, S.hardMatch);
   assert.equal(res.breakdown.junctions, 0, 'second source on same network capped');
   assert.ok(!res.networkEvents.some((e) => e.type === 'spring'));
 });
@@ -138,7 +141,7 @@ test('estuary junction pays once per river network', () => {
   put(b, RIVER, 0, 0);
   const ctx = createScoringContext();
   let res = applyPlacement(b, tt(ALL('OC')), 1, 0, ctx);
-  assert.equal(res.breakdown.junctions, 40);
+  assert.equal(res.breakdown.junctions, S.junction.estuary);
   assert.ok(res.networkEvents.some((e) => e.type === 'estuary'));
   res = applyPlacement(b, tt(ALL('OC')), -1, 0, ctx);
   assert.equal(res.breakdown.junctions, 0);
@@ -150,22 +153,22 @@ test('two source junctions created by one placement pay a single bonus', () => {
   put(b, ['GR', 'GR', 'GR', 'GR', 'RI', 'RI'], 1, -1); // joins the same network
   const ctx = createScoringContext();
   const res = applyPlacement(b, tt(ALL('MT')), 1, 0, ctx);
-  assert.equal(res.breakdown.edges, 30, 'two Ri-Mt edge pairs');
-  assert.equal(res.breakdown.junctions, 30, 'but only one source bonus');
+  assert.equal(res.breakdown.edges, 2 * S.hardMatch, 'two Ri-Mt edge pairs');
+  assert.equal(res.breakdown.junctions, S.junction.source, 'but only one source bonus');
   assert.equal(res.networkEvents.filter((e) => e.type === 'spring').length, 1);
 });
 
-test('cliff junction (cliff mode): legal, +10 one-time, named event', () => {
+test('cliff junction (cliff mode): legal, one-time bonus, named event', () => {
   const config = cfg({ mountainCoast: 'cliff' });
   const b = createBoard();
   put(b, ALL('OC'), 0, 0);
   const ctx = createScoringContext();
   const res = applyPlacement(b, tt(ALL('MT')), 1, 0, ctx, config);
   assert.equal(res.breakdown.edges, 0);
-  assert.equal(res.breakdown.junctions, 10);
+  assert.equal(res.breakdown.junctions, S.junction.cliff);
   assert.deepEqual(
     res.networkEvents.filter((e) => e.type === 'cliff').map((e) => e.points),
-    [10],
+    [S.junction.cliff],
   );
 });
 
@@ -175,17 +178,18 @@ function putCompletedRoute(b, r) {
   put(b, ['HO', 'GR', 'GR', 'OC', 'OC', 'GR'], 2, r, { dockEdges: [3] });
 }
 
-test('trade income: +2 per completed route on subsequent placements, cap +10', () => {
+test('trade income: perRoute per completed route on subsequent placements, capped', () => {
   const b = createBoard();
   putCompletedRoute(b, 0);
   const ctx = createScoringContext();
   let res = applyPlacement(b, tt(ALL('GR')), -1, 0, ctx);
-  assert.equal(res.breakdown.tradeIncome, 2);
+  assert.equal(res.breakdown.tradeIncome, S.tradeIncome.perRoute);
 
   const b6 = createBoard();
-  for (let i = 0; i < 6; i++) putCompletedRoute(b6, i * 2);
+  const routes = Math.ceil(S.tradeIncome.cap / S.tradeIncome.perRoute) + 1;
+  for (let i = 0; i < routes; i++) putCompletedRoute(b6, i * 2);
   res = applyPlacement(b6, tt(ALL('GR')), -1, 0, createScoringContext());
-  assert.equal(res.breakdown.tradeIncome, 10, 'capped at 5 routes');
+  assert.equal(res.breakdown.tradeIncome, S.tradeIncome.cap, 'capped');
 
   const off = cfg({ tradeIncome: false });
   const b1 = createBoard();
@@ -233,7 +237,9 @@ test('end-game bonuses: longest rail/river, largest mountain/ocean', () => {
   assert.equal(eg.longestRiver, 2);
   assert.equal(eg.largestMountain, 3);
   assert.equal(eg.largestOcean, 2);
-  assert.equal(eg.points, 2 * 10 + 2 * 10 + 3 * 8 + 2 * 5);
+  assert.equal(eg.points,
+    2 * S.endGame.longestRail + 2 * S.endGame.longestRiver +
+    3 * S.endGame.largestMountainGroup + 2 * S.endGame.largestOceanGroup);
 });
 
 test('PlacementResult carries the SPEC shape', () => {

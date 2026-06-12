@@ -198,6 +198,11 @@ Applied every draw, in this order (resolves the cap-interaction concern):
    Harbor weight ×3 for the next 10 draws (TUNE); refreshes while the condition holds.
 4. **Mountain pity**: while an un-crowned Peak candidate is on the board, Foothills
    weight +4 percentage points (TUNE) (taken proportionally from soft archetypes).
+4½. **Island pity** (AMENDED, tuning round 2): while The Island epic is active and
+   incomplete, Coast weight +6 percentage points (TUNE), taken proportionally from
+   soft archetypes (mirror of mountain pity — the ring's only currency is the 3-Oc
+   coast). The family cap below still applies, so inside a capped family the bonus
+   re-weights Coast against the other ocean archetypes.
 5. **Finale**: during the last 15 tiles of the stack (including earned tiles), Harbor
    and Lane weights ×2 (TUNE).
 6. **Ocean-family cap** (Coast+Estuary+Open Ocean+Harbor+Lane): enforced LAST, after
@@ -313,15 +318,25 @@ quest completed this session, capped at base+8** (TUNE). One-shot quests don't s
 | Long River | connected river tiles | 4 + d3 | formula | Pastoral |
 | Rail Line | connected rail tiles | 4 + d3 | formula | Pastoral |
 | Mountain Range | mountain group size | 5 + d3 | formula | Highlands |
-| Grow the Ocean | largest ocean group | 6 + d4 | formula | Tide |
+| Grow the Ocean | largest ocean group | 5 + d3 | formula | Tide |
 | River's End | create 1 estuary | 1 (one-shot) | 100 pts, 2 tiles | Tide |
-| Twin Harbors | 2 harbors on the same ocean group | 1 (one-shot) | 150 pts, 3 tiles | Tide |
-| Open the Route | complete a lane route, length ≥5 | 1 (one-shot) | 180 pts, 4 tiles | lanes unlocked |
+| Twin Harbors | 2 harbors on the same ocean group | 1 (one-shot) | 150 pts, 2 tiles | Tide |
+| Open the Route | complete a lane route, length ≥3 (AMENDED from ≥5) | 1 (one-shot) | 220 pts, 4 tiles | lanes unlocked |
+
+All bases/dies/rewards retuned in round 1 — `CONFIG.quests` is authoritative.
 
 **Dead-quest guard** (resolves late-game feasibility concern): on spawn, clamp
-`target ≤ bestCurrentProgress + floor(tilesRemaining / 4)` (TUNE); if even the base
-target violates the guard, draw a different quest. One-shot quests leave the pool after
-2 completions each (TUNE).
+`target ≤ bestCurrentProgress + floor(tilesRemaining / divisor)` (TUNE); if even the
+base target violates the guard, draw a different quest. One-shot quests leave the pool
+after `oneShotMaxCompletions` completions each (TUNE; retuned 2 → 1 in round 2).
+
+**AMENDED (tuning round 2) — the guard extends to ACTIVE quests:** a standard quest
+whose remaining need exceeds the spawn allowance by more than a small slack
+(`target − progress > floor(tilesRemaining / divisor) + autoRefreshSlack`, TUNE) could
+never have spawned in that position — keeping it on screen is dealer error under the
+cozy mandate (§1). It is silently replaced with a fresh quest, free of charge (no
+reroll spent, no penalty; if no replacement fits the guard, it stays). UI: the slot
+fades and re-deals like a flag fading — no fanfare.
 
 **Rerolls:** 3 free standard-quest rerolls per session — 1 granted at start, +1 at the
 Tide transition, +1 at Voyage. The comeback valve for dead quests.
@@ -330,12 +345,32 @@ Tide transition, +1 at Voyage. The comeback valve for dead quests.
 
 | Epic | Condition | Reward |
 |---|---|---|
-| The Island | fully ring a land region of ≥3 tiles with ocean | 400 pts, 6 tiles |
-| Transcontinental | Trade Route with rail network ≥6 and lane ≥5 | 400 pts, 6 tiles |
-| Crown the Range | crown **2** Peaks | 350 pts, 5 tiles |
+| The Island | a land region of ≥3 tiles fully sea-locked (AMENDED, see below) | 400 pts, 6 tiles |
+| Transcontinental | Trade Route with rail network ≥4 and lane ≥2 (AMENDED from ≥6/≥5, round 2: lane ≥3 → ≥2) | 400 pts, 6 tiles |
+| Crown the Range | crown **2** Peaks | 280 pts, 5 tiles |
 
 (All TUNE. Crown the Range reduced from 3 to 2 peaks for feasibility at 4–5% High
 Mountain draw weight.)
+
+**DESIGN AMENDMENTS (balance tuning round 1, see `sim/TUNING.md`):**
+
+- **The Island** originally required every neighbor cell of the region to hold a
+  pure-water tile. Under the §3.1 legality matrix that is unbuildable: every
+  boundary tile of a minimal region would need ≥4 water edges and no archetype
+  has more than 3. Amended reading: the region (non-sea tiles connected through
+  land contact) is an island when **every non-water edge facing empty space is
+  eliminated** — i.e. its entire frontier is ocean. The smallest island is a
+  7-tile flower: six 3-Oc coasts around a soft center. Implemented in
+  `quests.isIslandRinged`.
+- **Transcontinental** rail ≥6 → ≥4 (aligned with the Trade Route's own rail
+  threshold, so any trade route over a long-enough lane qualifies) and lane
+  ≥5 → ≥3: median lane-tile supply is ~4 draws per run, so a 5-lane route was
+  out of budget by construction.
+- **Transcontinental (round 2)** lane ≥3 → ≥2: the epic's identity is carried
+  by the rail-≥4 trade route; median completed-lane length is ~1.5, and at
+  lane ≥3 the epic completed in ~10% of its runs vs the ~55%±15 gate
+  (`sim/TUNING.md`, round 2).
+- **Open the Route** lane length ≥5 → ≥3, same supply argument.
 
 ### 6.3 Flagged tile quests (graft from "feel" — the genre's compulsion engine)
 
@@ -483,12 +518,25 @@ if violated):
 | Winds-shift fire rate | < 2% of draws |
 | Runs reaching a dead board (no legal placement even after valves) | < 0.5% |
 | **Same, on mountain-heavy seeds** (top-decile mountain draws) | < 1% — validated separately, repel mode |
-| Placements P10–P90 | 80–135; **P90 ≤ 135** hard gate |
+| Placements P10–P90 | 72–135 (P10 amended 80 → 72, tuning round 3 — see note below); **P90 ≤ 135** hard gate |
 | Tile reproduction R | **< 0.65** hard gate |
 | Quest completion rate | 60–75%; Epic ≈ 55% |
 | Engagement: ≥1 completed river / lane route / crowned peak | ≥70% / ≥50% / ≥40% of runs (TUNE) |
 | `laneOceanRule:'sealed'` adoption test | strand <1% AND lane engagement within 10% of `'open'` — else `'open'` stays default |
 | `mountainCoast:'repel'` adoption test | passes mountain-heavy gate above — else `'cliff'` becomes default |
+
+> **DESIGN AMENDMENT (tuning round 3) — placements P10 gate 80 → 72.** The
+> original floor is jointly infeasible with the **P90 ≤ 135 hard gate**, the
+> ≈1,400 greedy ceiling and the §7.2 pace budget: tile earnings are
+> success-conditional by design (quest / structure / epic rewards), so the
+> placement distribution is the image of a multiplicative economy whose
+> P10 : P90 ratio stays ≈ 0.55–0.60 under every (TUNE) lever. Measured in
+> round 3 (~20 experiments): each +1 placement bought at P10 costs ≈ +1.3 at
+> P90 and ≈ +21 greedy median; flattening rewards far enough to detach the
+> tails guts the completion economy the game is built on. 72 placements still
+> gives the bottom decile a ≥ 12-minute session at the §7.2 pace. Round-3
+> close: P10 75.9–76.8 / P90 127–128 on both verification seeds (P10 was
+> 62–64 at round-1 baseline).
 
 ---
 

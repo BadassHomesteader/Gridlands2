@@ -176,6 +176,21 @@ export function computeWeights(gameState, config = CONFIG) {
     }
   }
 
+  // 4.5. island pity (tuning round 2) — while The Island epic is active and
+  // incomplete, +pp to coast taken proportionally from soft archetypes
+  // (mirror of mountain pity; the ring's only currency is the 3-Oc coast).
+  // The family cap below still applies: inside a capped family the bonus
+  // re-weights coast against the other ocean archetypes.
+  if (gameState.islandEpicActive && config.weights.islandPity) {
+    const bonus = config.weights.islandPity.coastBonus;
+    const softs = config.weights.softArchetypes;
+    const softSum = softs.reduce((s, a) => s + w[a], 0);
+    if (softSum > 0 && w.coast > 0) {
+      for (const a of softs) w[a] -= bonus * (w[a] / softSum);
+      w.coast += bonus;
+    }
+  }
+
   // 5. finale
   const finale = (gameState.stackRemaining ?? Infinity) <= config.stack.finaleWindow;
   if (finale) {

@@ -105,6 +105,7 @@ export class Game {
     }
     const laneCells = new Set(
       validPlacements(this.board, LANE_PROBE, this.config).map((p) => p.q + ',' + p.r));
+    const epic = this.quests ? this.quests.epic : null;
     return {
       placements: this.placements,
       stackRemaining: this.stackRemaining,
@@ -113,6 +114,7 @@ export class Game {
       needyLaneRoute: needy,
       harborPityDrawsLeft: this.harborPityDrawsLeft,
       uncrownedPeak: uncrowned,
+      islandEpicActive: !!(epic && !epic.done && epic.id === 'theIsland'),
       activeFlags: this.quests ? this.quests.flags.length : 0,
     };
   }
@@ -232,6 +234,7 @@ export class Game {
     const qres = processQuests(this.quests, this._questEnv(), result, this.rng, this.config);
     result.questsCompleted = qres.completed;
     result.questsProgressed = qres.progressed;
+    result.questsRefreshed = qres.refreshed;
     result.breakdown.quests = qres.points;
     result.points += qres.points;
     this.channels.quests += qres.points;
@@ -324,6 +327,7 @@ export class Game {
       stuckStates: c.windsShiftFires,
       deadBoard: c.deadBoard,
       questsCompleted: c.questsCompleted,
+      questsAutoRefreshed: this.quests.autoRefreshed || 0,
       standardQuestsCompleted: this.quests.completedStandard,
       flagsCompleted: this.quests.flagsCompleted,
       flagsFaded: this.quests.flagsFaded,

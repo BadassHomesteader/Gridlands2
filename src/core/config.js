@@ -9,7 +9,7 @@ export const CONFIG = {
   },
 
   stack: {
-    start: 45,
+    start: 56,
     slider: [15, 100],
     finaleWindow: 15,            // last N stack tiles (incl. earned) = Finale
     paceSecondsPerPlacement: 10, // §7.2 pace note
@@ -32,14 +32,14 @@ export const CONFIG = {
         coast: 0, estuary: 0, openOcean: 0, harbor: 0, lane: 0,
       },
       tide: {
-        meadow: 24, hamlet: 9, pureSoft: 5, river: 13, rail: 10,
+        meadow: 23, hamlet: 9, pureSoft: 5, river: 13, rail: 10,
         foothills: 10, highMountain: 4,
-        coast: 12, estuary: 3, openOcean: 3, harbor: 4, lane: 3,
+        coast: 10, estuary: 3, openOcean: 2, harbor: 5, lane: 6,
       },
       voyage: {
-        meadow: 22, hamlet: 8, pureSoft: 4, river: 12, rail: 10,
+        meadow: 20, hamlet: 8, pureSoft: 4, river: 12, rail: 10,
         foothills: 10, highMountain: 4,
-        coast: 12, estuary: 4, openOcean: 4, harbor: 5, lane: 5,
+        coast: 10, estuary: 4, openOcean: 2, harbor: 6, lane: 10,
       },
     },
     oceanFamily: ['coast', 'estuary', 'openOcean', 'harbor', 'lane'],
@@ -52,10 +52,14 @@ export const CONFIG = {
     },
     // §4.2 step 4 — mountain pity (+pp to foothills, taken proportionally from soft).
     mountainPity: { foothillsBonus: 4 },
+    // §4.2 step 4.5 (tuning round 2) — island pity: while The Island epic is
+    // active and incomplete, +pp to coast (the ring's only currency), taken
+    // proportionally from soft archetypes. Mirror of mountain pity.
+    islandPity: { coastBonus: 6 },
     // §4.2 step 5 — finale multipliers.
     finale: { harborMult: 2, laneMult: 2 },
     // §4.2 step 6 — ocean-family cap (% of total), enforced LAST.
-    oceanFamilyCap: { tide: 25, voyage: 30, finale: 35 },
+    oceanFamilyCap: { tide: 26, voyage: 32, finale: 36 },
   },
 
   // §4 catalog sub-splits (fractions sum to 1) + variant rates.
@@ -65,7 +69,7 @@ export const CONFIG = {
     river: { splits: [['straight', 0.40], ['wide', 0.35], ['tight', 0.25]] },
     rail: { splits: [['straight', 0.40], ['wide', 0.35], ['tight', 0.25]] },
     foothills: { splits: [['adjacent', 0.60], ['skip', 0.40]] },
-    coast: { splits: [['2oc', 0.60], ['3oc', 0.40]] },
+    coast: { splits: [['2oc', 0.30], ['3oc', 0.70]] },
     estuary: { splits: [['ri3', 0.50], ['ri4', 0.50]] },
     lane: { splits: [['straight', 0.60], ['wide', 0.40]] },
     harborCraneRate: 1 / 3, // 1 in 3 Harbors is a Crane Harbor
@@ -73,30 +77,30 @@ export const CONFIG = {
 
   scoring: {
     // §3.1 / §5.1
-    softMatch: 10,
-    hardMatch: 15,
-    junction: { source: 30, estuary: 40, portCall: 25, cliff: 10 },
+    softMatch: 5,
+    hardMatch: 8,
+    junction: { source: 3, estuary: 3, portCall: 16, cliff: 7 },
     // §5.2 clean streak
-    streak: { per: 5, cap: 50 },
+    streak: { per: 3, cap: 7 },
     // §5.3 perfect placement (escalating ladder for consecutive perfects, cap = last)
     perfect: { ladder: [50, 75, 100], bonusTiles: 1 },
     // §5.4–§5.6 structure completions
     structures: {
-      riverCompleted: { perTile: 12, tiles: 2 },
-      laneCompleted: { perTile: 20, perHinterland: 5, tiles: 2 },
-      peakCrowned: { points: 60, tiles: 1, minPrintedMtEdges: 4 },
+      riverCompleted: { perTile: 2, tiles: 1 },
+      laneCompleted: { perTile: 46, perHinterland: 10, tiles: 1 },
+      peakCrowned: { points: 33, tiles: 1, minPrintedMtEdges: 4 },
       tradeRoute: {
-        points: 150, tiles: 4, extraPairPoints: 50,
+        points: 250, tiles: 2, extraPairPoints: 45,
         minRailNetwork: 4, shipRenderCap: 8,
       },
-      snowline: { points: 25, groupSize: 5 },
+      snowline: { points: 10, groupSize: 5 },
     },
     // §5.7 trade income
-    tradeIncome: { perRoute: 2, cap: 10 },
+    tradeIncome: { perRoute: 2, cap: 8 },
     // §5.8 end-game bonuses (per tile)
     endGame: {
-      longestRail: 10, longestRiver: 10,
-      largestMountainGroup: 8, largestOceanGroup: 5,
+      longestRail: 5, longestRiver: 5,
+      largestMountainGroup: 5, largestOceanGroup: 2,
     },
     // §5 fitness target (primary balance.mjs target)
     targets: {
@@ -111,29 +115,41 @@ export const CONFIG = {
     visibleEpic: 1,
     maxFlags: 3,
     flagRate: 0.20,           // §4 flag modifier / §6.3
-    themedRewardRate: 0.60,   // §6.4
-    reward: { base: 100, perTarget: 10, tileBase: 2, tileDivisor: 4, tileCap: 4 },
-    scaling: { perCompletion: 2, capAboveBase: 8 },
-    deadGuardDivisor: 4,      // target <= bestProgress + floor(tilesRemaining / 4)
-    oneShotMaxCompletions: 2,
-    rerolls: { atStart: 1, atTide: 1, atVoyage: 1 }, // 3 total per session
-    flag: { targetBase: 3, targetDie: 4, points: 60, tiles: 2 }, // grow by 3 + d4
+    themedRewardRate: 0.90,   // §6.4
+    reward: { base: 8, perTarget: 3, tileBase: 3, tileDivisor: 4, tileCap: 3 },
+    scaling: { perCompletion: 3, capAboveBase: 12 },
+    deadGuardDivisor: 8,      // target <= bestProgress + floor(tilesRemaining / divisor)
+    // DESIGN AMENDMENT (tuning round 2): the dead-quest guard extends to
+    // ACTIVE quests. A standard quest whose remaining need exceeds the spawn
+    // allowance by more than autoRefreshSlack is dealer error (cozy mandate)
+    // and is silently replaced for free — no reroll spent, no penalty.
+    autoRefresh: true,
+    autoRefreshSlack: 1,
+    oneShotMaxCompletions: 1,
+    rerolls: { atStart: 2, atTide: 1, atVoyage: 0 }, // 3 total per session
+    flag: { targetBase: 3, targetDie: 4, points: 22, tiles: 2 }, // grow by 3 + d4
     standard: [
-      { id: 'bigForest', metric: 'group:FO', base: 6, die: 3, from: 'pastoral' },
-      { id: 'bigField', metric: 'group:FI', base: 6, die: 3, from: 'pastoral' },
-      { id: 'bigVillage', metric: 'group:HO', base: 6, die: 3, from: 'pastoral' },
-      { id: 'longRiver', metric: 'network:RI', base: 4, die: 3, from: 'pastoral' },
+      { id: 'bigForest', metric: 'group:FO', base: 5, die: 3, from: 'pastoral' },
+      { id: 'bigField', metric: 'group:FI', base: 5, die: 3, from: 'pastoral' },
+      { id: 'bigVillage', metric: 'group:HO', base: 5, die: 3, from: 'pastoral' },
+      { id: 'longRiver', metric: 'network:RI', base: 3, die: 2, from: 'pastoral' },
       { id: 'railLine', metric: 'network:RA', base: 4, die: 3, from: 'pastoral' },
-      { id: 'mountainRange', metric: 'group:MT', base: 5, die: 3, from: 'highlands' },
-      { id: 'growTheOcean', metric: 'group:OC', base: 6, die: 4, from: 'tide' },
-      { id: 'riversEnd', oneShot: true, points: 100, tiles: 2, from: 'tide' },
-      { id: 'twinHarbors', oneShot: true, points: 150, tiles: 3, from: 'tide' },
-      { id: 'openTheRoute', oneShot: true, points: 180, tiles: 4, minLaneLength: 5, from: 'lanesUnlocked' },
+      { id: 'mountainRange', metric: 'group:MT', base: 4, die: 2, from: 'highlands' },
+      { id: 'growTheOcean', metric: 'group:OC', base: 5, die: 3, from: 'tide' },
+      { id: 'riversEnd', oneShot: true, points: 70, tiles: 2, from: 'tide' },
+      { id: 'twinHarbors', oneShot: true, points: 150, tiles: 1, from: 'tide' },
+      { id: 'openTheRoute', oneShot: true, points: 250, tiles: 3, minLaneLength: 3, from: 'lanesUnlocked' },
     ],
     epics: [
-      { id: 'theIsland', points: 400, tiles: 6, minRegion: 3 },
-      { id: 'transcontinental', points: 400, tiles: 6, minRail: 6, minLane: 5 },
-      { id: 'crownTheRange', points: 350, tiles: 5, peaks: 2 },
+      { id: 'theIsland', points: 400, tiles: 4, minRegion: 3 },
+      // DESIGN AMENDMENT (round 1): rail >=6 -> >=4 (aligned with the trade
+      // route's own rail threshold) and lane >=5 -> >=3; the original is
+      // unbuildable against median lane supply (~4 lane draws per run).
+      // DESIGN AMENDMENT (round 2): lane >=3 -> >=2 — the epic's identity is
+      // carried by the rail>=4 trade route; median completed-lane length is
+      // ~1.5, so lane >=3 left the epic at ~10% vs the ~55%+/-15 gate.
+      { id: 'transcontinental', points: 400, tiles: 4, minRail: 4, minLane: 2 },
+      { id: 'crownTheRange', points: 280, tiles: 4, peaks: 2 },
     ],
   },
 
@@ -150,8 +166,8 @@ export const CONFIG = {
   // §7.4
   valves: {
     windsShift: true,
-    discardCost: -25,
-    harborPity: { lanes: 3, maxConnectedHarbors: 1, mult: 3, draws: 10 },
+    discardCost: -45,
+    harborPity: { lanes: 1, maxConnectedHarbors: 1, mult: 3, draws: 12 },
   },
 
   // §10 acceptance gates as data (consumed by sim/balance.mjs)
@@ -164,7 +180,11 @@ export const CONFIG = {
     windsShiftMaxRate: 0.02,
     deadBoardMaxRate: 0.005,
     deadBoardMaxRateMountainHeavy: 0.01, // top-decile mountain draws, repel mode
-    placements: { p10Min: 80, p90Max: 135 }, // P90 hard gate
+    // DESIGN AMENDMENT (tuning round 3): P10 gate 80 -> 72. Jointly infeasible
+    // with the P90 <= 135 HARD gate, the greedy ceiling and the 13-17 min pace
+    // under a success-conditional tile economy (see DESIGN §10 note + TUNING.md
+    // round 3). 72 still guarantees the bottom decile a >= 12-minute session.
+    placements: { p10Min: 72, p90Max: 135 }, // P90 hard gate
     reproductionMax: 0.65, // hard gate
     questCompletion: { min: 0.60, max: 0.75, epic: 0.55 },
     engagement: { riverCompleted: 0.70, laneCompleted: 0.50, peakCrowned: 0.40 },

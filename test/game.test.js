@@ -27,17 +27,17 @@ function run(g, max = 600) {
 
 const LANE = () => tt(['LA', 'OC', 'OC', 'LA', 'OC', 'OC'], { archetype: 'lane' });
 
-test('constructor: 45-tile default stack, hand drawn, quests initialized', () => {
+test('constructor: default stack from CONFIG, hand drawn, quests initialized', () => {
   const g = new Game({ seed: 7 });
-  assert.equal(g.tileCount, 45);
-  assert.equal(g.stackRemaining, 44, 'one tile drawn into hand');
+  assert.equal(g.tileCount, CONFIG.stack.start);
+  assert.equal(g.stackRemaining, CONFIG.stack.start - 1, 'one tile drawn into hand');
   assert.equal(g.currentTile.edges.length, 6);
   assert.equal(g.placements, 0);
   assert.equal(g.score, 0);
   assert.equal(g.over, false);
   assert.equal(g.quests.standard.length, 3);
   assert.ok(g.quests.epic);
-  assert.equal(g.quests.rerolls, 1);
+  assert.equal(g.quests.rerolls, CONFIG.quests.rerolls.atStart);
 });
 
 test('same seed -> identical games; different seed -> different draw', () => {
@@ -101,19 +101,22 @@ test('stage transitions announced; rerolls granted at tide and voyage', () => {
   assert.deepEqual(stages, ['highlands', 'tide', 'voyage']);
   const grants = events.filter((e) => e.type === 'rerollGranted').map((e) => e.stage);
   assert.deepEqual(grants, ['tide', 'voyage']);
-  assert.equal(g.quests.rerolls + g.quests.rerollsUsed, 3, '1 start + 1 tide + 1 voyage');
+  const R = CONFIG.quests.rerolls;
+  assert.equal(g.quests.rerolls + g.quests.rerollsUsed, R.atStart + R.atTide + R.atVoyage,
+    'start + tide + voyage grants');
 });
 
-test('discard: explicit, costs 25, draws a replacement', () => {
+test('discard: explicit, costs discardCost, draws a replacement', () => {
   const g = new Game({ seed: 9 });
+  const cost = CONFIG.valves.discardCost;
   const id0 = g.currentTile.id;
   const stack = g.stackRemaining;
   const out = g.discard();
-  assert.equal(g.score, -25);
+  assert.equal(g.score, cost);
   assert.notEqual(g.currentTile.id, id0);
   assert.equal(g.stackRemaining, stack - 1);
   assert.equal(g.stats.discards, 1);
-  assert.ok(out.events.some((e) => e.type === 'discard' && e.cost === -25));
+  assert.ok(out.events.some((e) => e.type === 'discard' && e.cost === cost));
 });
 
 test('winds shift: unplaceable draw auto-rerolls free', () => {
@@ -127,7 +130,7 @@ test('winds shift: unplaceable draw auto-rerolls free', () => {
   assert.equal(g.stats.windsShiftMeadowFallbacks, 0);
   assert.ok(g.currentTile);
   assert.ok(g.legalPlacements().length > 0, 'replacement is placeable');
-  assert.equal(g.score, score - 25, 'valve itself is free');
+  assert.equal(g.score, score + CONFIG.valves.discardCost, 'valve itself is free');
 });
 
 test('winds shift falls back to a guaranteed Meadow Blend', () => {
@@ -188,6 +191,9 @@ test('serialize/deserialize round-trips mid-game and stays in lockstep', () => {
 
 test('rerollQuest: swaps a standard quest, spends the reroll', () => {
   const g = new Game({ seed: 14 });
+  for (let i = g.quests.rerolls; i > 1; i--) {
+    assert.ok(g.rerollQuest(0), 'spend down to the last reroll');
+  }
   const oldId = g.quests.standard[0].id;
   const fresh = g.rerollQuest(0);
   assert.ok(fresh);

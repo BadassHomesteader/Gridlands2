@@ -576,6 +576,7 @@ export function createEffects(ctx) {
       if (scene.fog) tweenColor(scene.fog.color, 0xcfdfe6, 3);
       if (scene.background?.isColor) tweenColor(scene.background, 0xd9e6ea, 3);
       tweenColor(ctx.hemi.color, 0xeaf2f5, 3);
+      if (ctx.groundMat) tweenColor(ctx.groundMat.color, 0xf2ecdd, 3);
     } else if (stage === 'voyage') {
       if (scene.fog) tweenColor(scene.fog.color, 0xc6dbe4, 3);
     } else if (stage === 'finale') {
@@ -593,6 +594,7 @@ export function createEffects(ctx) {
     tweenNum(ctx.hemi, 'intensity', 0.35, 4);
     if (scene.fog) tweenColor(scene.fog.color, 0xe2b48e, 4);
     if (scene.background?.isColor) tweenColor(scene.background, 0xdba87e, 4);
+    if (ctx.groundMat) tweenColor(ctx.groundMat.color, 0xe7bf95, 4);
     setWindowGlow(1.3);
     tweenNum(shipLanternMat, 'emissiveIntensity', 1.6, 4);
     let minX = -3, maxX = 3, minZ = -3, maxZ = 3;

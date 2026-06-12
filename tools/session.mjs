@@ -96,13 +96,14 @@ try {
 
   for (let i = 5; i < 8; i++) await placeOne(i);
 
-  // 3. discard once via the real button
+  // 3. discard once via the real button (cost read from CONFIG, the authority)
+  const discardCost = await page.evaluate(() => window.GL2.game.config.valves.discardCost);
   const dBefore = await page.evaluate(() => ({ s: window.GL2.game.score, d: window.GL2.game.stats.discards }));
   await page.click('#btn-discard');
   await page.waitForTimeout(300);
   const dAfter = await page.evaluate(() => ({ s: window.GL2.game.score, d: window.GL2.game.stats.discards }));
   log('discard:', JSON.stringify(dBefore), '->', JSON.stringify(dAfter),
-    dAfter.d === dBefore.d + 1 && dAfter.s === dBefore.s - 25 ? 'OK' : 'FAIL');
+    dAfter.d === dBefore.d + 1 && dAfter.s === dBefore.s + discardCost ? 'OK' : 'FAIL');
 
   // 4. one more placement after discard
   await placeOne(8);

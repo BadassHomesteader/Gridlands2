@@ -4,18 +4,22 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { TERRAINS, TERRAIN_NAMES, SOFT, isSoft, edgeRelation } from '../src/core/terrain.js';
 import { cfg } from './helpers.js';
+import { CONFIG } from '../src/core/config.js';
+
+const SOFT_PTS = CONFIG.scoring.softMatch;
+const HARD_PTS = CONFIG.scoring.hardMatch;
 
 const ILLEGAL = { legal: false, points: 0, junction: null };
 
 // Independent transcription of DESIGN §3.1/§3.2.
 function expected(a, b, { aDock, bDock, mountainCoast, laneOceanRule }) {
   const soft = (t) => SOFT.has(t);
-  if (soft(a) && soft(b)) return { legal: true, points: a === b ? 10 : 0, junction: null };
+  if (soft(a) && soft(b)) return { legal: true, points: a === b ? SOFT_PTS : 0, junction: null };
   if (soft(a) || soft(b)) return ILLEGAL;
-  if (a === b) return { legal: true, points: 15, junction: null };
+  if (a === b) return { legal: true, points: HARD_PTS, junction: null };
   const pair = [a, b].sort().join();
-  if (pair === 'MT,RI') return { legal: true, points: 15, junction: 'source' };
-  if (pair === 'OC,RI') return { legal: true, points: 15, junction: 'estuary' };
+  if (pair === 'MT,RI') return { legal: true, points: HARD_PTS, junction: 'source' };
+  if (pair === 'OC,RI') return { legal: true, points: HARD_PTS, junction: 'estuary' };
   if (pair === 'MT,OC') {
     return mountainCoast === 'cliff'
       ? { legal: true, points: 0, junction: 'cliff' }
@@ -23,7 +27,7 @@ function expected(a, b, { aDock, bDock, mountainCoast, laneOceanRule }) {
   }
   if (pair === 'LA,OC') {
     const dock = a === 'OC' ? aDock : bDock;
-    if (dock) return { legal: true, points: 15, junction: 'portCall' };
+    if (dock) return { legal: true, points: HARD_PTS, junction: 'portCall' };
     return laneOceanRule === 'open'
       ? { legal: true, points: 0, junction: null }
       : ILLEGAL;
@@ -81,19 +85,19 @@ test('matrix is symmetric (with docks swapped)', () => {
 
 test('hand-pinned anchor cells from DESIGN §3.1', () => {
   const eq = (got, want) => assert.deepEqual(got, want);
-  eq(edgeRelation('GR', 'GR'), { legal: true, points: 10, junction: null });
+  eq(edgeRelation('GR', 'GR'), { legal: true, points: SOFT_PTS, junction: null });
   eq(edgeRelation('GR', 'FO'), { legal: true, points: 0, junction: null });
   eq(edgeRelation('GR', 'RI'), { legal: false, points: 0, junction: null });
-  eq(edgeRelation('RI', 'RI'), { legal: true, points: 15, junction: null });
-  eq(edgeRelation('RI', 'MT'), { legal: true, points: 15, junction: 'source' });
-  eq(edgeRelation('RI', 'OC'), { legal: true, points: 15, junction: 'estuary' });
+  eq(edgeRelation('RI', 'RI'), { legal: true, points: HARD_PTS, junction: null });
+  eq(edgeRelation('RI', 'MT'), { legal: true, points: HARD_PTS, junction: 'source' });
+  eq(edgeRelation('RI', 'OC'), { legal: true, points: HARD_PTS, junction: 'estuary' });
   eq(edgeRelation('RI', 'RA'), { legal: false, points: 0, junction: null });
   eq(edgeRelation('RA', 'MT'), { legal: false, points: 0, junction: null });
   eq(edgeRelation('MT', 'OC'), { legal: false, points: 0, junction: null }); // repel default
   eq(edgeRelation('LA', 'OC'), { legal: true, points: 0, junction: null }); // open default
-  eq(edgeRelation('LA', 'OC', { bDock: true }), { legal: true, points: 15, junction: 'portCall' });
-  eq(edgeRelation('OC', 'LA', { aDock: true }), { legal: true, points: 15, junction: 'portCall' });
-  eq(edgeRelation('LA', 'LA'), { legal: true, points: 15, junction: null });
+  eq(edgeRelation('LA', 'OC', { bDock: true }), { legal: true, points: HARD_PTS, junction: 'portCall' });
+  eq(edgeRelation('OC', 'LA', { aDock: true }), { legal: true, points: HARD_PTS, junction: 'portCall' });
+  eq(edgeRelation('LA', 'LA'), { legal: true, points: HARD_PTS, junction: null });
   eq(edgeRelation('LA', 'RI'), { legal: false, points: 0, junction: null });
   eq(edgeRelation('LA', 'MT'), { legal: false, points: 0, junction: null });
   eq(edgeRelation('HO', 'LA'), { legal: false, points: 0, junction: null });
@@ -105,7 +109,7 @@ test('cliff mode: Mt<->Oc legal, junction cliff, bonus comes from scoring', () =
     edgeRelation('MT', 'OC', { config }),
     { legal: true, points: 0, junction: 'cliff' },
   );
-  assert.equal(config.scoring.junction.cliff, 10);
+  assert.equal(config.scoring.junction.cliff, CONFIG.scoring.junction.cliff);
 });
 
 test('empty space is always legal, 0 points', () => {

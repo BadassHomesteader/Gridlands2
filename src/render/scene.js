@@ -21,15 +21,18 @@
 // touches only its canvas (plus window key/resize listeners for pan controls).
 
 import * as THREE from 'three';
-import { key, parseKey, toWorld } from '../core/hex.js';
+import { key, parseKey, toWorld, neighbors } from '../core/hex.js';
 import { placementRelations } from '../core/board.js';
 import { buildTileMesh, setSnowcap, HEX_SIZE } from './tilemesh.js';
 import { createEffects } from './effects.js';
 
 const ZOOM_MIN = 6;
 const ZOOM_MAX = 55;
+const ZOOM_START = 10; // opening tiles fill the frame; follow eases out later
+const FOLLOW_RESUME = 3; // seconds hands-off before centroid-follow resumes
 const DROP_HEIGHT = 8;
 const GRAVITY = 30;
+const GROUND_Y = -0.42;
 
 const stripGeo = new THREE.BoxGeometry(0.68, 0.1, 0.13);
 const stripMats = {
@@ -63,6 +66,56 @@ function edgeStrip(dir, status, y) {
   return m;
 }
 
+// Warm parchment sea-haze ground texture — the empty world must read as
+// golden-hour mist (matching the menu), never as night ocean, so Ocean TILES
+// stay the only blue water on screen.
+function makeGroundTexture() {
+  const c = document.createElement('canvas');
+  c.width = c.height = 1024;
+  const g = c.getContext('2d');
+  const grad = g.createRadialGradient(512, 512, 30, 512, 512, 512);
+  grad.addColorStop(0, '#fdf3dd');
+  grad.addColorStop(0.18, '#f7e8cb');
+  grad.addColorStop(0.45, '#efdcba');
+  grad.addColorStop(1, '#e3cda6');
+  g.fillStyle = grad;
+  g.fillRect(0, 0, 1024, 1024);
+  // soft dune/haze mottling (seeded so shots are reproducible)
+  let s = 7;
+  const rand = () => { s = (s * 16807) % 2147483647; return s / 2147483647; };
+  for (let i = 0; i < 130; i++) {
+    g.fillStyle = rand() < 0.5
+      ? 'rgba(213, 184, 138, 0.05)'
+      : 'rgba(255, 250, 236, 0.07)';
+    g.beginPath();
+    g.ellipse(rand() * 1024, rand() * 1024, 24 + rand() * 80, 14 + rand() * 50,
+      rand() * Math.PI, 0, Math.PI * 2);
+    g.fill();
+  }
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
+// Flat hexagonal ring (lies in XZ); corners match the tile prism orientation.
+function hexRingGeometry(r0, r1) {
+  const pos = [];
+  const P = (r, a) => [Math.cos(a) * r, 0, Math.sin(a) * r];
+  for (let k = 0; k < 6; k++) {
+    const a1 = (Math.PI / 180) * (30 + k * 60);
+    const a2 = (Math.PI / 180) * (30 + (k + 1) * 60);
+    const A = P(r0, a1);
+    const B = P(r1, a1);
+    const C = P(r1, a2);
+    const D = P(r0, a2);
+    pos.push(...A, ...B, ...C, ...A, ...C, ...D);
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(pos), 3));
+  geo.computeVertexNormals();
+  return geo;
+}
+
 export function init(canvas, game) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -94,20 +147,44 @@ export function init(canvas, game) {
   const hemi = new THREE.HemisphereLight(0xfff1dd, 0x8c7a5e, 0.6);
   scene.add(hemi);
 
-  // sea floor beneath the island board, grounds the world like GL1's ocean
-  const seaMat = new THREE.MeshStandardMaterial({ color: 0x2e5f9e, roughness: 0.4, metalness: 0.1 });
-  const sea = new THREE.Mesh(new THREE.PlaneGeometry(600, 600), seaMat);
-  sea.rotation.x = -Math.PI / 2;
-  sea.position.y = -0.55;
-  sea.receiveShadow = true;
-  scene.add(sea);
+  // warm parchment ground (replaces the old navy "sea floor" — it dominated
+  // the frame and was confusable with real Ocean tiles). Unlit so the cream
+  // stays exact; fog melts it into the horizon haze.
+  const groundMat = new THREE.MeshBasicMaterial({ map: makeGroundTexture() });
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(600, 600), groundMat);
+  ground.rotation.x = -Math.PI / 2;
+  ground.position.y = GROUND_Y;
+  scene.add(ground);
+  // tile shadows land on a transparent catcher (basic materials ignore lights)
+  const shadowPlane = new THREE.Mesh(
+    new THREE.PlaneGeometry(600, 600),
+    new THREE.ShadowMaterial({ color: 0x6b4a26, opacity: 0.3 }));
+  shadowPlane.rotation.x = -Math.PI / 2;
+  shadowPlane.position.y = GROUND_Y + 0.005;
+  shadowPlane.receiveShadow = true;
+  scene.add(shadowPlane);
+
+  // frontier hints: faint hex outlines on empty cells adjacent to placed
+  // tiles, so "where can I build" reads against the haze
+  const hintGroup = new THREE.Group();
+  scene.add(hintGroup);
+  const hintGeo = hexRingGeometry(0.8, 0.91);
+  const hintMat = new THREE.MeshBasicMaterial({
+    color: 0xc2a274, transparent: true, opacity: 0.3,
+    depthWrite: false, side: THREE.DoubleSide,
+  });
+  const hints = new Map(); // "q,r" -> mesh
 
   const tiles = new Map(); // "q,r" -> THREE.Group
-  const effects = createEffects({ scene, game, tiles, sun, hemi });
+  const effects = createEffects({ scene, game, tiles, sun, hemi, groundMat });
 
   const focus = new THREE.Vector3(0, 0, 0);
-  let zoom = 18;
-  let targetZoom = 18;
+  let zoom = ZOOM_START;
+  let targetZoom = ZOOM_START;
+  let bounds = null; // bbox of placed tiles in world units
+  const followTarget = new THREE.Vector3(0, 0, 0);
+  let panIdle = FOLLOW_RESUME + 1; // start in follow mode
+  let autoZoomPaused = false; // manual wheel pauses refit until next placement
   let time = 0;
   let flight = null;
   const drops = [];
@@ -138,6 +215,61 @@ export function init(canvas, game) {
     return cubeRound(qf, rf);
   }
 
+  // --- board tracking: bbox bounds, follow target, frontier hints ---
+
+  function updateFrontier() {
+    const want = new Set();
+    for (const k of tiles.keys()) {
+      const { q, r } = parseKey(k);
+      for (const n of neighbors(q, r)) {
+        const nk = key(n.q, n.r);
+        if (!tiles.has(nk)) want.add(nk);
+      }
+    }
+    for (const [k, m] of hints) {
+      if (!want.has(k)) {
+        hintGroup.remove(m);
+        hints.delete(k);
+      }
+    }
+    for (const k of want) {
+      if (hints.has(k)) continue;
+      const { q, r } = parseKey(k);
+      const m = new THREE.Mesh(hintGeo, hintMat);
+      const p = cellToWorld(q, r);
+      m.position.set(p.x, GROUND_Y + 0.012, p.z);
+      hintGroup.add(m);
+      hints.set(k, m);
+    }
+  }
+
+  function boardChanged() {
+    if (tiles.size) {
+      let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
+      for (const g of tiles.values()) {
+        minX = Math.min(minX, g.position.x);
+        maxX = Math.max(maxX, g.position.x);
+        minZ = Math.min(minZ, g.position.z);
+        maxZ = Math.max(maxZ, g.position.z);
+      }
+      bounds = { minX, maxX, minZ, maxZ };
+      followTarget.set((minX + maxX) / 2, 0, (minZ + maxZ) / 2);
+    } else {
+      bounds = null;
+      followTarget.set(0, 0, 0);
+    }
+    autoZoomPaused = false; // every placement re-allows the gentle zoom refit
+    updateFrontier();
+  }
+
+  // generous pan clamp: board bbox + margin that scales with zoom
+  function clampFocus() {
+    const m = 9 + zoom * 0.6;
+    const b = bounds || { minX: -6, maxX: 6, minZ: -6, maxZ: 6 };
+    focus.x = Math.max(b.minX - m, Math.min(b.maxX + m, focus.x));
+    focus.z = Math.max(b.minZ - m, Math.min(b.maxZ + m, focus.z));
+  }
+
   // --- tile visuals ---
 
   function addTileVisual(tile, q, r) {
@@ -146,6 +278,7 @@ export function init(canvas, game) {
     group.position.set(p.x, 0, p.z);
     scene.add(group);
     tiles.set(key(q, r), group);
+    boardChanged();
     return group;
   }
 
@@ -166,6 +299,7 @@ export function init(canvas, game) {
       const { q, r } = parseKey(k);
       addTileVisual(tile, q, r);
     }
+    boardChanged(); // covers the rebuild-to-empty case (addTileVisual not hit)
     effects.syncBoardState();
   }
 
@@ -272,6 +406,8 @@ export function init(canvas, game) {
       const f = zoom * 0.0016;
       focus.x -= dx * f;
       focus.z -= dy * f;
+      panIdle = 0; // never yank the camera during a player pan
+      clampFocus();
     } else if (!flight) {
       const cell = pickCell(e.clientX, e.clientY);
       if (cell && (!hoverCell || cell.q !== hoverCell.q || cell.r !== hoverCell.r)) {
@@ -293,6 +429,7 @@ export function init(canvas, game) {
   function onWheel(e) {
     e.preventDefault();
     targetZoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, targetZoom + e.deltaY * 0.02));
+    autoZoomPaused = true; // respect manual zoom until the next placement
   }
 
   function onContextMenu(e) {
@@ -336,12 +473,42 @@ export function init(canvas, game) {
     time += d;
 
     const pan = zoom * 0.9 * d;
+    const arrowPanning =
+      keysDown.ArrowUp || keysDown.ArrowDown || keysDown.ArrowLeft || keysDown.ArrowRight;
     if (keysDown.ArrowUp) focus.z -= pan;
     if (keysDown.ArrowDown) focus.z += pan;
     if (keysDown.ArrowLeft) focus.x -= pan;
     if (keysDown.ArrowRight) focus.x += pan;
+    if (arrowPanning || dragging) {
+      panIdle = 0;
+      clampFocus();
+    } else {
+      panIdle += d;
+    }
+
+    // gentle centroid-follow: once the player is hands-off, ease the camera
+    // toward the board's bbox center and (after placements) zoom out to fit
+    if (!flight && bounds && panIdle >= FOLLOW_RESUME) {
+      const ease = Math.min(1, d * 1.6);
+      focus.x += (followTarget.x - focus.x) * ease;
+      // small south bias lifts the board toward the visual center (the tilted
+      // camera otherwise leaves extra headroom above the board)
+      focus.z += (followTarget.z + zoom * 0.04 - focus.z) * ease;
+      if (!autoZoomPaused) {
+        const sx = (bounds.maxX - bounds.minX) / 2 + 2.6;
+        const sz = (bounds.maxZ - bounds.minZ) / 2 + 2.6;
+        const fit = Math.max(ZOOM_START,
+          1.12 * Math.max(sx / (0.5 * camera.aspect), sz / 0.49));
+        if (fit > targetZoom) {
+          targetZoom = Math.min(ZOOM_MAX,
+            targetZoom + (fit - targetZoom) * Math.min(1, d * 1.4));
+        }
+      }
+    }
 
     zoom += (targetZoom - zoom) * Math.min(1, d * 8);
+
+    hintMat.opacity = 0.24 + 0.07 * Math.sin(time * 1.6); // soft frontier pulse
 
     if (flight) {
       flight.t += d / flight.dur;
@@ -423,6 +590,10 @@ export function init(canvas, game) {
     window.removeEventListener('keyup', onKeyUp);
     window.removeEventListener('resize', resize);
     clearGhost();
+    groundMat.map.dispose();
+    groundMat.dispose();
+    hintGeo.dispose();
+    hintMat.dispose();
     effects.dispose();
     renderer.dispose();
   }

@@ -1,0 +1,2804 @@
+{
+  "meta": {
+    "date": "2026-06-12T11:03:35.317Z",
+    "games": 50,
+    "seed": 2,
+    "policies": [
+      "questAware"
+    ],
+    "rules": {
+      "mountainCoast": "repel",
+      "laneOceanRule": "open",
+      "tradeIncome": true
+    },
+    "configOverrides": null,
+    "elapsedSeconds": 6.591
+  },
+  "summaries": {
+    "questAware": {
+      "n": 50,
+      "score": {
+        "mean": 2608.58,
+        "median": 2475.5,
+        "p10": 1611.5,
+        "p90": 3805.7
+      },
+      "placements": {
+        "mean": 100.52,
+        "p10": 79.9,
+        "p90": 132.2
+      },
+      "draws": 100.52,
+      "discards": 0,
+      "tilesEarned": 44.52,
+      "reproduction": 0.4253031880344237,
+      "perfectRate": 0.007861630846479152,
+      "maxStreak": 8.14,
+      "questCompletionRate": 0.6462885478271471,
+      "epicRate": 0.5,
+      "flagsCompleted": 2.68,
+      "windsShiftRate": 0.004576203740549145,
+      "stuckMean": 0.46,
+      "deadRate": 0,
+      "mountainHeavyDeadRate": 0,
+      "mountainHeavyN": 5,
+      "endsWithLegal": 1,
+      "engagement": {
+        "river": 0.92,
+        "lane": 0.72,
+        "peak": 0.7
+      },
+      "channelPct": {
+        "edges": 41.628778875863496,
+        "streaksPerfects": 11.403905573147076,
+        "quests": 29.054121399382037,
+        "structures": 14.289766846330188,
+        "endGame": 3.623427305277201
+      },
+      "largestGroups": {
+        "GR": 12.48,
+        "FO": 15.88,
+        "FI": 15.88,
+        "HO": 7.24,
+        "RI": 3.7,
+        "RA": 6.76,
+        "MT": 5.42,
+        "OC": 7.56,
+        "LA": 1.78
+      }
+    }
+  },
+  "gates": [
+    {
+      "name": "median score questAware",
+      "target": "2800 +/-20%",
+      "actual": "2476",
+      "result": "PASS"
+    },
+    {
+      "name": "median score greedy",
+      "target": "~1400",
+      "actual": "-",
+      "result": "n-a"
+    },
+    {
+      "name": "landOnly/questAware median (hard)",
+      "target": "<= 0.55",
+      "actual": "-",
+      "result": "n-a"
+    },
+    {
+      "name": "distribution edges (questAware)",
+      "target": "45 +/-5pp",
+      "actual": "41.6",
+      "result": "PASS"
+    },
+    {
+      "name": "distribution streaksPerfects (questAware)",
+      "target": "15 +/-5pp",
+      "actual": "11.4",
+      "result": "PASS"
+    },
+    {
+      "name": "distribution quests (questAware)",
+      "target": "25 +/-5pp",
+      "actual": "29.1",
+      "result": "PASS"
+    },
+    {
+      "name": "distribution structures (questAware)",
+      "target": "10 +/-5pp",
+      "actual": "14.3",
+      "result": "PASS"
+    },
+    {
+      "name": "distribution endGame (questAware)",
+      "target": "5 +/-5pp",
+      "actual": "3.6",
+      "result": "PASS"
+    },
+    {
+      "name": "winds-shift fire rate",
+      "target": "< 2% draws",
+      "actual": "0.46%",
+      "result": "PASS"
+    },
+    {
+      "name": "dead-board rate",
+      "target": "< 0.5%",
+      "actual": "0.00%",
+      "result": "PASS"
+    },
+    {
+      "name": "dead-board mtn-heavy (n=5, repel)",
+      "target": "< 1%",
+      "actual": "0.00%",
+      "result": "PASS"
+    },
+    {
+      "name": "placements p10",
+      "target": ">= 72",
+      "actual": "79.9",
+      "result": "PASS"
+    },
+    {
+      "name": "placements p90 (hard)",
+      "target": "<= 135",
+      "actual": "132.2",
+      "result": "PASS"
+    },
+    {
+      "name": "reproduction R (hard)",
+      "target": "< 0.65",
+      "actual": "0.425",
+      "result": "PASS"
+    },
+    {
+      "name": "quest completion rate",
+      "target": "60-75%",
+      "actual": "64.6%",
+      "result": "PASS"
+    },
+    {
+      "name": "epic completion",
+      "target": "~55% +/-15pp",
+      "actual": "50%",
+      "result": "PASS"
+    },
+    {
+      "name": "engagement: river completed",
+      "target": ">= 70%",
+      "actual": "92%",
+      "result": "PASS"
+    },
+    {
+      "name": "engagement: lane completed",
+      "target": ">= 50%",
+      "actual": "72%",
+      "result": "PASS"
+    },
+    {
+      "name": "engagement: peak crowned",
+      "target": ">= 40%",
+      "actual": "70%",
+      "result": "PASS"
+    },
+    {
+      "name": "ADOPT mountainCoast repel",
+      "target": "run with --modes",
+      "actual": "-",
+      "result": "n-a"
+    },
+    {
+      "name": "ADOPT laneOceanRule sealed",
+      "target": "run with --modes",
+      "actual": "-",
+      "result": "n-a"
+    }
+  ],
+  "modes": null,
+  "games": {
+    "questAware": [
+      {
+        "seed": 2,
+        "score": 3257,
+        "placements": 112,
+        "draws": 112,
+        "discards": 0,
+        "reproduction": 0.5,
+        "perfects": 1,
+        "maxStreak": 9,
+        "windsShiftFires": 0,
+        "deadBoard": false,
+        "finished": true,
+        "questCompletionRate": 0.9333333333333333,
+        "epicDone": false,
+        "flagsCompleted": 3,
+        "channels": {
+          "edges": 1264,
+          "streaksPerfects": 368,
+          "quests": 848,
+          "structures": 635,
+          "endGame": 142
+        },
+        "engagement": {
+          "riverCompleted": true,
+          "laneCompleted": true,
+          "peakCrowned": true
+        },
+        "structures": {
+          "riverCompleted": 1,
+          "laneCompleted": 2,
+          "peakCrowned": 5,
+          "tradeRoute": 0,
+          "snowline": 1,
+          "estuary": 11,
+          "spring": 5,
+          "portCall": 5,
+          "cliff": 0
+        },
+        "largestGroups": {
+          "GR": 25,
+          "FO": 19,
+          "FI": 9,
+          "HO": 11,
+          "RI": 3,
+          "RA": 12,
+          "MT": 11,
+          "OC": 6,
+          "LA": 4
+        },
+        "mountainDrawShare": 0.14285714285714285,
+        "legalMovesRemaining": 258
+      },
+      {
+        "seed": 7921,
+        "score": 2687,
+        "placements": 96,
+        "draws": 96,
+        "discards": 0,
+        "reproduction": 0.4166666666666667,
+        "perfects": 0,
+        "maxStreak": 7,
+        "windsShiftFires": 1,
+        "deadBoard": false,
+        "finished": true,
+        "questCompletionRate": 0.5714285714285714,
+        "epicDone": true,
+        "flagsCompleted": 3,
+        "channels": {
+          "edges": 1035,
+          "streaksPerfects": 207,
+          "quests": 755,
+          "structures": 587,
+          "endGame": 103
+        },
+        "engagement": {
+          "riverCompleted": true,
+          "laneCompleted": true,
+          "peakCrowned": true
+        },
+        "structures": {
+          "riverCompleted": 2,
+          "laneCompleted": 1,
+          "peakCrowned": 4,
+          "tradeRoute": 1,
+          "snowline": 1,
+          "estuary": 6,
+          "spring": 5,
+          "portCall": 3,
+          "cliff": 0
+        },
+        "largestGroups": {
+          "GR": 15,
+          "FO": 12,
+          "FI": 15,
+          "HO": 6,
+          "RI": 3,
+          "RA": 4,
+          "MT": 10,
+          "OC": 9,
+          "LA": 3
+        },
+        "mountainDrawShare": 0.16666666666666666,
+        "legalMovesRemaining": 198
+      },
+      {
+        "seed": 15840,
+        "score": 1564,
+        "placements": 80,
+        "draws": 80,
+        "discards": 0,
+        "reproduction": 0.3,
+        "perfects": 1,
+        "maxStreak": 8,
+        "windsShiftFires": 1,
+        "deadBoard": false,
+        "finished": true,
+        "questCompletionRate": 0.5714285714285714,
+        "epicDone": false,
+        "flagsCompleted": 3,
+        "channels": {
+          "edges": 841,
+          "streaksPerfects": 254,
+          "quests": 238,
+          "structures": 166,
+          "endGame": 65
+        },
+        "engagement": {
+          "riverCompleted": true,
+          "laneCompleted": true,
+          "peakCrowned": true
+        },
+        "structures": {
+          "riverCompleted": 4,
+          "laneCompleted": 1,
+          "peakCrowned": 1,
+          "tradeRoute": 0,
+          "snowline": 0,
+          "estuary": 6,
+          "spring": 7,
+          "portCall": 2,
+          "cliff": 0
+        },
+        "largestGroups": {
+          "GR": 21,
+          "FO": 14,
+          "FI": 15,
+          "HO": 6,
+          "RI": 4,
+          "RA": 4,
+          "MT": 3,
+          "OC": 5,
+          "LA": 1
+        },
+        "mountainDrawShare": 0.15,
+        "legalMovesRemaining": 174
+      },
+      {
+        "seed": 23759,
+        "score": 2168,
+        "placements": 97,
+        "draws": 97,
+        "discards": 0,
+        "reproduction": 0.422680412371134,
+        "perfects": 1,
+        "maxStreak": 7,
+        "windsShiftFires": 2,
+        "deadBoard": false,
+        "finished": true,
+        "questCompletionRate": 0.6875,
+        "epicDone": false,
+        "flagsCompleted": 3,
+        "channels": {
+          "edges": 1083,
+          "streaksPerfects": 379,
+          "quests": 528,
+          "structures": 95,
+          "endGame": 83
+        },
+        "engagement": {
+          "riverCompleted": true,
+          "laneCompleted": false,
+          "peakCrowned": true
+        },
+        "structures": {
+          "riverCompleted": 1,
+          "laneCompleted": 0,
+          "peakCrowned": 1,
+          "tradeRoute": 0,
+          "snowline": 1,
+          "estuary": 4,
+          "spring": 12,
+          "portCall": 0,
+          "cliff": 0
+        },
+        "largestGroups": {
+          "GR": 12,
+          "FO": 14,
+          "FI": 22,
+          "HO": 2,
+          "RI": 3,
+          "RA": 4,
+          "MT": 8,
+          "OC": 4,
+          "LA": 0
+        },
+        "mountainDrawShare": 0.20618556701030927,
+        "legalMovesRemaining": 234
+      },
+      {
+        "seed": 31678,
+        "score": 3634,
+        "placements": 134,
+        "draws": 134,
+        "discards": 0,
+        "reproduction": 0.582089552238806,
+        "perfects": 1,
+        "maxStreak": 8,
+        "windsShiftFires": 0,
+        "deadBoard": false,
+        "finished": true,
+        "questCompletionRate": 0.7307692307692307,
+        "epicDone": true,
+        "flagsCompleted": 2,
+        "channels": {
+          "edges": 1388,
+          "streaksPerfects": 294,
+          "quests": 1100,
+          "structures": 746,
+          "endGame": 106
+        },
+        "engagement": {
+          "riverCompleted": true,
+          "laneCompleted": true,
+          "peakCrowned": true
+        },
+        "structures": {
+          "riverCompleted": 8,
+          "laneCompleted": 3,
+          "peakCrowned": 4,
+          "tradeRoute": 0,
+          "snowline": 2,
+          "estuary": 14,
+          "spring": 16,
+          "portCall": 8,
+          "cliff": 0
+        },
+        "largestGroups": {
+          "GR": 13,
+          "FO": 11,
+          "FI": 18,
+          "HO": 15,
+          "RI": 2,
+          "RA": 8,
+          "MT": 8,
+          "OC": 8,
+          "LA": 1
+        },
+        "mountainDrawShare": 0.17164179104477612,
+        "legalMovesRemaining": 324
+      },
+      {
+        "seed": 39597,
+        "score": 3314,
+        "placements": 125,
+        "draws": 125,
+        "discards": 0,
+        "reproduction": 0.552,
+        "perfects": 0,
+        "maxStreak": 11,
+        "windsShiftFires": 0,
+        "deadBoard": false,
+        "finished": true,
+        "questCompletionRate": 0.68,
+        "epicDone": true,
+        "flagsCompleted": 5,
+        "channels": {
+          "edges": 1388,
+          "streaksPerfects": 375,
+          "quests": 1156,
+          "structures": 276,
+          "endGame": 119
+        },
+        "engagement": {
+          "riverCompleted": true,
+          "laneCompleted": true,
+          "peakCrowned": true
+        },
+        "structures": {
+          "riverCompleted": 3,
+          "laneCompleted": 1,
+          "peakCrowned": 3,
+          "tradeRoute": 0,
+          "snowline": 1,
+          "estuary": 9,
+          "spring": 6,
+          "portCall": 3,
+          "cliff": 0
+        },
+        "largestGroups": {
+          "GR": 18,
+          "FO": 18,
+          "FI": 15,
+          "HO": 7,
+          "RI": 6,
+          "RA": 6,
+          "MT": 7,
+          "OC": 12,
+          "LA": 1
+        },
+        "mountainDrawShare": 0.088,
+        "legalMovesRemaining": 276
+      },
+      {
+        "seed": 47516,
+        "score": 1607,
+        "placements": 81,
+        "draws": 81,
+        "discards": 0,
+        "reproduction": 0.30864197530864196,
+        "perfects": 0,
+        "maxStreak": 6,
+        "windsShiftFires": 0,
+        "deadBoard": false,
+        "finished": true,
+        "questCompletionRate": 0.6363636363636364,
+        "epicDone": false,
+        "flagsCompleted": 3,
+        "channels": {
+          "edges": 831,
+          "streaksPerfects": 186,
+          "quests": 473,
+          "structures": 50,
+          "endGame": 67
+        },
+        "engagement": {
+          "riverCompleted": true,
+          "laneCompleted": false,
+          "peakCrowned": false
+        },
+        "structures": {
+          "riverCompleted": 1,
+          "laneCompleted": 0,
+          "peakCrowned": 0,
+          "tradeRoute": 0,
+          "snowline": 0,
+          "estuary": 3,
+          "spring": 7,
+          "portCall": 1,
+          "cliff": 0
+        },
+        "largestGroups": {
+          "GR": 10,
+          "FO": 18,
+          "FI": 7,
+          "HO": 9,
+          "RI": 3,
+          "RA": 6,
+          "MT": 2,
+          "OC": 6,
+          "LA": 1
+        },
+        "mountainDrawShare": 0.1111111111111111,
+        "legalMovesRemaining": 168
+      },
+      {
+        "seed": 55435,
+        "score": 1895,
+        "placements": 88,
+        "draws": 88,
+        "discards": 0,
+        "reproduction": 0.36363636363636365,
+        "perfects": 2,
+        "maxStreak": 4,
+        "windsShiftFires": 0,
+        "deadBoard": false,
+        "finished": true,
+        "questCompletionRate": 0.5714285714285714,
+        "epicDone": false,
+        "flagsCompleted": 6,
+        "channels": {
+          "edges": 899,
+          "streaksPerfects": 248,
+          "quests": 283,
+          "structures": 365,
+          "endGame": 100
+        },
+        "engagement": {
+          "riverCompleted": true,
+          "laneCompleted": true,
+          "peakCrowned": true
+        },
+        "structures": {
+          "riverCompleted": 3,
+          "laneCompleted": 2,
+          "peakCrowned": 2,
+          "tradeRoute": 0,
+          "snowline": 1,
+          "estuary": 5,
+          "spring": 4,
+          "portCall": 6,
+          "cliff": 0
+        },
+        "largestGroups": {
+          "GR": 11,
+          "FO": 7,
+          "FI": 9,
+          "HO": 8,
+          "RI": 5,
+          "RA": 6,
+          "MT": 7,
+          "OC": 5,
+          "LA": 5
+        },
+        "mountainDrawShare": 0.11363636363636363,
+        "legalMovesRemaining": 246
+      },
+      {
+        "seed": 63354,
+        "score": 1839,
+        "placements": 95,
+        "draws": 95,
+        "discards": 0,
+        "reproduction": 0.4105263157894737,
+        "perfects": 0,
+        "maxStreak": 9,
+        "windsShiftFires": 0,
+        "deadBoard": false,
+        "finished": true,
+        "questCompletionRate": 0.5263157894736842,
+        "epicDone": false,
+        "flagsCompleted": 4,
+        "channels": {
+          "edges": 989,
+          "streaksPerfects": 284,
+          "quests": 431,
+          "structures": 51,
+          "endGame": 84
+        },
+        "engagement": {
+          "riverCompleted": true,
+          "laneCompleted": false,
+          "peakCrowned": false
+        },
+        "structures": {
+          "riverCompleted": 2,
+          "laneCompleted": 0,
+          "peakCrowned": 0,
+          "tradeRoute": 0,
+          "snowline": 0,
+          "estuary": 12,
+          "spring": 3,
+          "portCall": 0,
+          "cliff": 0
+        },
+        "largestGroups": {
+          "GR": 11,
+          "FO": 9,
+          "FI": 13,
+          "HO": 7,
+          "RI": 3,
+          "RA": 9,
+          "MT": 4,
+          "OC": 2,
+          "LA": 0
+        },
+        "mountainDrawShare": 0.12631578947368421,
+        "legalMovesRemaining": 216
+      },
+      {
+        "seed": 71273,
+        "score": 4207,
+        "placements": 139,
+        "draws": 139,
+        "discards": 0,
+        "reproduction": 0.5971223021582733,
+        "perfects": 3,
+        "maxStreak": 12,
+        "windsShiftFires": 0,
+        "deadBoard": false,
+        "finished": true,
+        "questCompletionRate": 0.7241379310344828,
+        "epicDone": true,
+        "flagsCompleted": 3,
+        "channels": {
+          "edges": 1617,
+          "streaksPerfects": 527,
+          "quests": 1512,
+          "structures": 392,
+          "endGame": 159
+        },
+        "engagement": {
+          "riverCompleted": true,
+          "laneCompleted": true,
+          "peakCrowned": true
+        },
+        "structures": {
+          "riverCompleted": 3,
+          "laneCompleted": 1,
+          "peakCrowned": 4,
+          "tradeRoute": 0,
+          "snowline": 2,
+          "estuary": 18,
+          "spring": 6,
+          "portCall": 3,
+          "cliff": 0
+        },
+        "largestGroups": {
+          "GR": 9,
+          "FO": 31,
+          "FI": 24,
+          "HO": 2,
+          "RI": 5,
+          "RA": 13,
+          "MT": 9,
+          "OC": 12,
+          "LA": 2
+        },
+        "mountainDrawShare": 0.12949640287769784,
+        "legalMovesRemaining": 312
+      },
+      {
+        "seed": 79192,
+        "score": 1839,
+        "placements": 83,
+        "draws": 83,
+        "discards": 0,
+        "reproduction": 0.3253012048192771,
+        "perfects": 0,
+        "maxStreak": 6,
+        "windsShiftFires": 0,
+        "deadBoard": false,
+        "finished": true,
+        "questCompletionRate": 0.5,
+        "epicDone": true,
+        "flagsCompleted": 1,
+        "channels": {
+          "edges": 876,
+          "streaksPerfects": 225,
+          "quests": 605,
+          "structures": 41,
+          "endGame": 92
+        },
+        "engagement": {
+          "riverCompleted": true,
+          "laneCompleted": false,
+          "peakCrowned": false
+        },
+        "structures": {
+          "riverCompleted": 3,
+          "laneCompleted": 0,
+          "peakCrowned": 0,
+          "tradeRoute": 0,
+          "snowline": 0,
+          "estuary": 5,
+          "spring": 4,
+          "portCall": 0,
+          "cliff": 0
+        },
+        "largestGroups": {
+          "GR": 15,
+          "FO": 13,
+          "FI": 13,
+          "HO": 5,
+          "RI": 5,
+          "RA": 7,
+          "MT": 4,
+          "OC": 6,
+          "LA": 2
+        },
+        "mountainDrawShare": 0.14457831325301204,
+        "legalMovesRemaining": 204
+      },
+      {
+        "seed": 87111,
+        "score": 2379,
+        "placements": 97,
+        "draws": 97,
+        "discards": 0,
+        "reproduction": 0.422680412371134,
+        "perfects": 0,
+        "maxStreak": 13,
+        "windsShiftFires": 0,
+        "deadBoard": false,
+        "finished": true,
+        "questCompletionRate": 0.7333333333333333,
+        "epicDone": false,
+        "flagsCompleted": 4,
+        "channels": {
+          "edges": 967,
+          "streaksPerfects": 303,
+          "quests": 689,
+          "structures": 351,
+          "endGame": 69
+        },
+        "engagement": {
+          "riverCompleted": true,
+          "laneCompleted": true,
+          "peakCrowned": false
+        },
+        "structures": {
+          "riverCompleted": 1,
+          "laneCompleted": 2,
+          "peakCrowned": 0,
+          "tradeRoute": 0,
+          "snowline": 0,
+          "estuary": 4,
+          "spring": 5,
+          "portCall": 6,
+          "cliff": 0
+        },
+        "largestGroups": {
+          "GR": 8,
+          "FO": 23,
+          "FI": 25,
+          "HO": 10,
+          "RI": 4,
+          "RA": 4,
+          "MT": 3,
+          "OC": 7,
+          "LA": 4
+        },
+        "mountainDrawShare": 0.10309278350515463,
+        "legalMovesRemaining": 228
+      },
+      {
+        "seed": 95030,
+        "score": 3812,
+        "placements": 138,
+        "draws": 138,
+        "discards": 0,
+        "reproduction": 0.5942028985507246,
+        "perfects": 1,
+        "maxStreak": 5,
+        "windsShiftFires": 0,
+        "deadBoard": false,
+        "finished": true,
+        "questCompletionRate": 0.7241379310344828,
+        "epicDone": true,
+        "flagsCompleted": 6,
+        "channels": {
+          "edges": 1528,
+          "streaksPerfects": 362,
+          "quests": 1519,
+          "structures": 271,
+          "endGame": 132
+        },
+        "engagement": {
+          "riverCompleted": true,
+          "laneCompleted": true,
+          "peakCrowned": true
+        },
+        "structures": {
+          "riverCompleted": 2,
+          "laneCompleted": 1,
+          "peakCrowned": 2,
+          "tradeRoute": 0,
+          "snowline": 1,
+          "estuary": 15,
+          "spring": 4,
+          "portCall": 5,
+          "cliff": 0
+        },
+        "largestGroups": {
+          "GR": 7,
+          "FO": 24,
+          "FI": 29,
+          "HO": 12,
+          "RI": 2,
+          "RA": 8,
+          "MT": 10,
+          "OC": 16,
+          "LA": 2
+        },
+        "mountainDrawShare": 0.11594202898550725,
+        "legalMovesRemaining": 240
+      },
+      {
+        "seed": 102949,
+        "score": 3644,
+        "placements": 136,
+        "draws": 136,
+        "discards": 0,
+        "reproduction": 0.5882352941176471,
+        "perfects": 1,
+        "maxStreak": 8,
+        "windsShiftFires": 3,
+        "deadBoard": false,
+        "finished": true,
+        "questCompletionRate": 0.7037037037037037,
+        "epicDone": true,
+        "flagsCompleted": 5,
+        "channels": {
+          "edges": 1426,
+          "streaksPerfects": 335,
+          "quests": 1376,
+          "structures": 374,
+          "endGame": 133
+        },
+        "engagement": {
+          "riverCompleted": true,
+          "laneCompleted": true,
+          "peakCrowned": true
+        },
+        "structures": {
+          "riverCompleted": 5,
+          "laneCompleted": 1,
+          "peakCrowned": 5,
+          "tradeRoute": 0,
+          "snowline": 1,
+          "estuary": 10,
+          "spring": 9,
+          "portCall": 4,
+          "cliff": 0
+        },
+        "largestGroups": {
+          "GR": 15,
+          "FO": 25,
+          "FI": 26,
+          "HO": 8,
+          "RI": 4,
+          "RA": 10,
+          "MT": 11,
+          "OC": 4,
+          "LA": 2
+        },
+        "mountainDrawShare": 0.11029411764705882,
+        "legalMovesRemaining": 222
+      },
+      {
+        "seed": 110868,
+        "score": 2012,
+        "placements": 92,
+        "draws": 92,
+        "discards": 0,
+        "reproduction": 0.391304347826087,
+        "perfects": 1,
+        "maxStreak": 4,
+        "windsShiftFires": 1,
+        "deadBoard": false,
+        "finished": true,
+        "questCompletionRate": 0.4666666666666667,
+        "epicDone": false,
+        "flagsCompleted": 4,
+        "channels": {
+          "edges": 954,
+          "streaksPerfects": 236,
+          "quests": 374,
+          "structures": 360,
+          "endGame": 88
+        },
+        "engagement": {
+          "riverCompleted": true,
+          "laneCompleted": true,
+          "peakCrowned": false
+        },
+        "structures": {
+          "riverCompleted": 5,
+          "laneCompleted": 2,
+          "peakCrowned": 0,
+          "tradeRoute": 0,
+          "snowline": 1,
+          "estuary": 6,
+          "spring": 10,
+          "portCall": 4,
+          "cliff": 0
+        },
+        "largestGroups": {
+          "GR": 9,
+          "FO": 18,
+          "FI": 12,
+          "HO": 6,
+          "RI": 3,
+          "RA": 8,
+          "MT": 5,
+          "OC": 4,
+          "LA": 1
+        },
+        "mountainDrawShare": 0.16304347826086957,
+        "legalMovesRemaining": 204
+      },
+      {
+        "seed": 118787,
+        "score": 1937,
+        "placements": 81,
+        "draws": 81,
+        "discards": 0,
+        "reproduction": 0.30864197530864196,
+        "perfects": 2,
+        "maxStreak": 7,
+        "windsShiftFires": 2,
+        "deadBoard": false,
+        "finished": true,
+        "questCompletionRate": 0.5,
+        "epicDone": false,
+        "flagsCompleted": 0,
+        "channels": {
+          "edges": 922,
+          "streaksPerfects": 332,
+          "quests": 336,
+          "structures": 239,
+          "endGame": 108
+        },
+        "engagement": {
+          "riverCompleted": true,
+          "laneCompleted": true,
+          "peakCrowned": true
+        },
+        "structures": {
+          "riverCompleted": 2,
+          "laneCompleted": 1,
+          "peakCrowned": 1,
+          "tradeRoute": 0,
+          "snowline": 1,
+          "estuary": 5,
+          "spring": 5,
+          "portCall": 4,
+          "cliff": 0
+        },
+        "largestGroups": {
+          "GR": 15,
+          "FO": 6,
+          "FI": 14,
+          "HO": 8,
+          "RI": 4,
+          "RA": 8,
+          "MT": 6,
+          "OC": 9,
+          "LA": 2
+        },
+        "mountainDrawShare": 0.16049382716049382,
+        "legalMovesRemaining": 234
+      },
+      {
+        "seed": 126706,
+        "score": 1894,
+        "placements": 91,
+        "draws": 91,
+        "discards": 0,
+        "reproduction": 0.38461538461538464,
+        "perfects": 1,
+        "maxStreak": 9,
+        "windsShiftFires": 1,
+        "deadBoard": false,
+        "finished": true,
+        "questCompletionRate": 0.47619047619047616,
+        "epicDone": false,
+        "flagsCompleted": 3,
+        "channels": {
+          "edges": 953,
+          "streaksPerfects": 266,
+          "quests": 569,
+          "structures": 41,
+          "endGame": 65
+        },
+        "engagement": {
+          "riverCompleted": true,
+          "laneCompleted": false,
+          "peakCrowned": false
+        },
+        "structures": {
+          "riverCompleted": 1,
+          "laneCompleted": 0,
+          "peakCrowned": 0,
+          "tradeRoute": 0,
+          "snowline": 0,
+          "estuary": 10,
+          "spring": 3,
+          "portCall": 0,
+          "cliff": 0
+        },
+        "largestGroups": {
+          "GR": 11,
+          "FO": 13,
+          "FI": 18,
+          "HO": 7,
+          "RI": 2,
+          "RA": 5,
+          "MT": 2,
+          "OC": 10,
+          "LA": 0
+        },
+        "mountainDrawShare": 0.04395604395604396,
+        "legalMovesRemaining": 216
+      },
+      {
+        "seed": 134625,
+        "score": 2241,
+        "placements": 99,
+        "draws": 99,
+        "discards": 0,
+        "reproduction": 0.43434343434343436,
+        "perfects": 0,
+        "maxStreak": 8,
+        "windsShiftFires": 0,
+        "deadBoard": false,
+        "finished": true,
+        "questCompletionRate": 0.7058823529411765,
+        "epicDone": false,
+        "flagsCompleted": 3,
+        "channels": {
+          "edges": 1050,
+          "streaksPerfects": 273,
+          "quests": 603,
+          "structures": 209,
+          "endGame": 106
+        },
+        "engagement": {
+          "riverCompleted": true,
+          "laneCompleted": true,
+          "peakCrowned": true
+        },
+        "structures": {
+          "riverCompleted": 1,
+          "laneCompleted": 1,
+          "peakCrowned": 2,
+          "tradeRoute": 0,
+          "snowline": 1,
+          "estuary": 6,
+          "spring": 3,
+          "portCall": 2,
+          "cliff": 0
+        },
+        "largestGroups": {
+          "GR": 12,
+          "FO": 24,
+          "FI": 17,
+          "HO": 6,
+          "RI": 4,
+          "RA": 6,
+          "MT": 8,
+          "OC": 8,
+          "LA": 1
+        },
+        "mountainDrawShare": 0.13131313131313133,
+        "legalMovesRemaining": 228
+      },
+      {
+        "seed": 142544,
+        "score": 2637,
+        "placements": 105,
+        "draws": 105,
+        "discards": 0,
+        "reproduction": 0.4666666666666667,
+        "perfects": 2,
+        "maxStreak": 4,
+        "windsShiftFires": 0,
+        "deadBoard": false,
+        "finished": true,
+        "questCompletionRate": 0.5294117647058824,
+        "epicDone": true,
+        "flagsCompleted": 4,
+        "channels": {
+          "edges": 1123,
+          "streaksPerfects": 299,
+          "quests": 896,
+          "structures": 228,
+          "endGame": 91
+        },
+        "engagement": {
+          "riverCompleted": true,
+          "laneCompleted": false,
+          "peakCrowned": true
+        },
+        "structures": {
+          "riverCompleted": 7,
+          "laneCompleted": 0,
+          "peakCrowned": 4,
+          "tradeRoute": 0,
+          "snowline": 1,
+          "estuary": 14,
+          "spring": 10,
+          "portCall": 0,
+          "cliff": 0
+        },
+        "largestGroups": {
+          "GR": 11,
+          "FO": 13,
+          "FI": 22,
+          "HO": 5,
+          "RI": 4,
+          "RA": 5,
+          "MT": 8,
+          "OC": 3,
+          "LA": 0
+        },
+        "mountainDrawShare": 0.12380952380952381,
+        "legalMovesRemaining": 246
+      },
+      {
+        "seed": 150463,
+        "score": 2510,
+        "placements": 102,
+        "draws": 102,
+        "discards": 0,
+        "reproduction": 0.45098039215686275,
+        "perfects": 0,
+        "maxStreak": 8,
+        "windsShiftFires": 1,
+        "deadBoard": false,
+        "finished": true,
+        "questCompletionRate": 0.7857142857142857,
+        "epicDone": true,
+        "flagsCompleted": 1,
+        "channels": {
+          "edges": 1047,
+          "streaksPerfects": 282,
+          "quests": 816,
+          "structures": 285,
+          "endGame": 80
+        },
+        "engagement": {
+          "riverCompleted": true,
+          "laneCompleted": true,
+          "peakCrowned": true
+        },
+        "structures": {
+          "riverCompleted": 6,
+          "laneCompleted": 1,
+          "peakCrowned": 3,
+          "tradeRoute": 0,
+          "snowline": 1,
+          "estuary": 6,
+          "spring": 10,
+          "portCall": 2,
+          "cliff": 0
+        },
+        "largestGroups": {
+          "GR": 7,
+          "FO": 12,
+          "FI": 21,
+          "HO": 4,
+          "RI": 5,
+          "RA": 2,
+          "MT": 7,
+          "OC": 5,
+          "LA": 1
+        },
+        "mountainDrawShare": 0.16666666666666666,
+        "legalMovesRemaining": 258
+      },
+      {
+        "seed": 158382,
+        "score": 2333,
+        "placements": 94,
+        "draws": 94,
+        "discards": 0,
+        "reproduction": 0.40425531914893614,
+        "perfects": 1,
+        "maxStreak": 12,
+        "windsShiftFires": 3,
+        "deadBoard": false,
+        "finished": true,
+        "questCompletionRate": 0.6428571428571429,
+        "epicDone": true,
+        "flagsCompleted": 1,
+        "channels": {
+          "edges": 960,
+          "streaksPerfects": 252,
+          "quests": 676,
+          "structures": 358,
+          "endGame": 87
+        },
+        "engagement": {
+          "riverCompleted": true,
+          "laneCompleted": true,
+          "peakCrowned": true
+        },
+        "structures": {
+          "riverCompleted": 1,
+          "laneCompleted": 2,
+          "peakCrowned": 2,
+          "tradeRoute": 0,
+          "snowline": 0,
+          "estuary": 7,
+          "spring": 7,
+          "portCall": 5,
+          "cliff": 0
+        },
+        "largestGroups": {
+          "GR": 10,
+          "FO": 19,
+          "FI": 17,
+          "HO": 6,
+          "RI": 5,
+          "RA": 6,
+          "MT": 4,
+          "OC": 6,
+          "LA": 1
+        },
+        "mountainDrawShare": 0.1276595744680851,
+        "legalMovesRemaining": 264
+      },
+      {
+        "seed": 166301,
+        "score": 1412,
+        "placements": 75,
+        "draws": 75,
+        "discards": 0,
+        "reproduction": 0.25333333333333335,
+        "perfects": 0,
+        "maxStreak": 9,
+        "windsShiftFires": 0,
+        "deadBoard": false,
+        "finished": true,
+        "questCompletionRate": 0.4,
+        "epicDone": false,
+        "flagsCompleted": 2,
+        "channels": {
+          "edges": 740,
+          "streaksPerfects": 179,
+          "quests": 380,
+          "structures": 46,
+          "endGame": 67
+        },
+        "engagement": {
+          "riverCompleted": false,
+          "laneCompleted": false,
+          "peakCrowned": false
+        },
+        "structures": {
+          "riverCompleted": 0,
+          "laneCompleted": 0,
+          "peakCrowned": 0,
+          "tradeRoute": 0,
+          "snowline": 0,
+          "estuary": 5,
+          "spring": 5,
+          "portCall": 1,
+          "cliff": 0
+        },
+        "largestGroups": {
+          "GR": 7,
+          "FO": 8,
+          "FI": 13,
+          "HO": 5,
+          "RI": 4,
+          "RA": 5,
+          "MT": 2,
+          "OC": 6,
+          "LA": 3
+        },
+        "mountainDrawShare": 0.16,
+        "legalMovesRemaining": 150
+      },
+      {
+        "seed": 174220,
+        "score": 2170,
+        "placements": 81,
+        "draws": 81,
+        "discards": 0,
+        "reproduction": 0.30864197530864196,
+        "perfects": 1,
+        "maxStreak": 6,
+        "windsShiftFires": 0,
+        "deadBoard": false,
+        "finished": true,
+        "questCompletionRate": 0.5,
+        "epicDone": true,
+        "flagsCompleted": 0,
+        "channels": {
+          "edges": 776,
+          "streaksPerfects": 184,
+          "quests": 598,
+          "structures": 537,
+          "endGame": 75
+        },
+        "engagement": {
+          "riverCompleted": true,
+          "laneCompleted": true,
+          "peakCrowned": true
+        },
+        "structures": {
+          "riverCompleted": 1,
+          "laneCompleted": 2,
+          "peakCrowned": 1,
+          "tradeRoute": 1,
+          "snowline": 0,
+          "estuary": 6,
+          "spring": 4,
+          "portCall": 5,
+          "cliff": 0
+        },
+        "largestGroups": {
+          "GR": 16,
+          "FO": 10,
+          "FI": 11,
+          "HO": 2,
+          "RI": 3,
+          "RA": 7,
+          "MT": 3,
+          "OC": 5,
+          "LA": 1
+        },
+        "mountainDrawShare": 0.1111111111111111,
+        "legalMovesRemaining": 228
+      },
+      {
+        "seed": 182139,
+        "score": 2179,
+        "placements": 87,
+        "draws": 87,
+        "discards": 0,
+        "reproduction": 0.3563218390804598,
+        "perfects": 0,
+        "maxStreak": 14,
+        "windsShiftFires": 0,
+        "deadBoard": false,
+        "finished": true,
+        "questCompletionRate": 0.6666666666666666,
+        "epicDone": false,
+        "flagsCompleted": 4,
+        "channels": {
+          "edges": 925,
+          "streaksPerfects": 290,
+          "quests": 485,
+          "structures": 392,
+          "endGame": 87
+        },
+        "engagement": {
+          "riverCompleted": false,
+          "laneCompleted": true,
+          "peakCrowned": false
+        },
+        "structures": {
+          "riverCompleted": 0,
+          "laneCompleted": 2,
+          "peakCrowned": 0,
+          "tradeRoute": 0,
+          "snowline": 0,
+          "estuary": 8,
+          "spring": 2,
+          "portCall": 4,
+          "cliff": 0
+        },
+        "largestGroups": {
+          "GR": 13,
+          "FO": 12,
+          "FI": 9,
+          "HO": 9,
+          "RI": 4,
+          "RA": 6,
+          "MT": 1,
+          "OC": 16,
+          "LA": 4
+        },
+        "mountainDrawShare": 0.04597701149425287,
+        "legalMovesRemaining": 252
+      },
+      {
+        "seed": 190058,
+        "score": 3991,
+        "placements": 141,
+        "draws": 141,
+        "discards": 0,
+        "reproduction": 0.6028368794326241,
+        "perfects": 0,
+        "maxStreak": 14,
+        "windsShiftFires": 0,
+        "deadBoard": false,
+        "finished": true,
+        "questCompletionRate": 0.7419354838709677,
+        "epicDone": true,
+        "flagsCompleted": 4,
+        "channels": {
+          "edges": 1488,
+          "streaksPerfects": 391,
+          "quests": 1743,
+          "structures": 254,
+          "endGame": 115
+        },
+        "engagement": {
+          "riverCompleted": true,
+          "laneCompleted": true,
+          "peakCrowned": true
+        },
+        "structures": {
+          "riverCompleted": 4,
+          "laneCompleted": 1,
+          "peakCrowned": 2,
+          "tradeRoute": 0,
+          "snowline": 0,
+          "estuary": 15,
+          "spring": 9,
+          "portCall": 3,
+          "cliff": 0
+        },
+        "largestGroups": {
+          "GR": 13,
+          "FO": 33,
+          "FI": 14,
+          "HO": 6,
+          "RI": 4,
+          "RA": 11,
+          "MT": 4,
+          "OC": 10,
+          "LA": 2
+        },
+        "mountainDrawShare": 0.0851063829787234,
+        "legalMovesRemaining": 318
+      },
+      {
+        "seed": 197977,
+        "score": 2600,
+        "placements": 102,
+        "draws": 102,
+        "discards": 0,
+        "reproduction": 0.45098039215686275,
+        "perfects": 0,
+        "maxStreak": 5,
+        "windsShiftFires": 1,
+        "deadBoard": false,
+        "finished": true,
+        "questCompletionRate": 0.75,
+        "epicDone": false,
+        "flagsCompleted": 3,
+        "channels": {
+          "edges": 1026,
+          "streaksPerfects": 189,
+          "quests": 568,
+          "structures": 715,
+          "endGame": 102
+        },
+        "engagement": {
+          "riverCompleted": true,
+          "laneCompleted": true,
+          "peakCrowned": false
+        },
+        "structures": {
+          "riverCompleted": 2,
+          "laneCompleted": 4,
+          "peakCrowned": 0,
+          "tradeRoute": 0,
+          "snowline": 1,
+          "estuary": 4,
+          "spring": 3,
+          "portCall": 10,
+          "cliff": 0
+        },
+        "largestGroups": {
+          "GR": 7,
+          "FO": 18,
+          "FI": 12,
+          "HO": 8,
+          "RI": 4,
+          "RA": 7,
+          "MT": 5,
+          "OC": 11,
+          "LA": 2
+        },
+        "mountainDrawShare": 0.16666666666666666,
+        "legalMovesRemaining": 312
+      },
+      {
+        "seed": 205896,
+        "score": 2962,
+        "placements": 111,
+        "draws": 111,
+        "discards": 0,
+        "reproduction": 0.4954954954954955,
+        "perfects": 0,
+        "maxStreak": 13,
+        "windsShiftFires": 0,
+        "deadBoard": false,
+        "finished": true,
+        "questCompletionRate": 0.8333333333333334,
+        "epicDone": true,
+        "flagsCompleted": 1,
+        "channels": {
+          "edges": 1267,
+          "streaksPerfects": 282,
+          "quests": 1103,
+          "structures": 180,
+          "endGame": 130
+        },
+        "engagement": {
+          "riverCompleted": true,
+          "laneCompleted": false,
+          "peakCrowned": true
+        },
+        "structures": {
+          "riverCompleted": 5,
+          "laneCompleted": 0,
+          "peakCrowned": 2,
+          "tradeRoute": 0,
+          "snowline": 1,
+          "estuary": 20,
+          "spring": 6,
+          "portCall": 1,
+          "cliff": 0
+        },
+        "largestGroups": {
+          "GR": 17,
+          "FO": 19,
+          "FI": 17,
+          "HO": 5,
+          "RI": 5,
+          "RA": 10,
+          "MT": 5,
+          "OC": 15,
+          "LA": 1
+        },
+        "mountainDrawShare": 0.07207207207207207,
+        "legalMovesRemaining": 276
+      },
+      {
+        "seed": 213815,
+        "score": 1399,
+        "placements": 75,
+        "draws": 75,
+        "discards": 0,
+        "reproduction": 0.25333333333333335,
+        "perfects": 0,
+        "maxStreak": 4,
+        "windsShiftFires": 0,
+        "deadBoard": false,
+        "finished": true,
+        "questCompletionRate": 0.38461538461538464,
+        "epicDone": false,
+        "flagsCompleted": 0,
+        "channels": {
+          "edges": 792,
+          "streaksPerfects": 151,
+          "quests": 210,
+          "structures": 151,
+          "endGame": 95
+        },
+        "engagement": {
+          "riverCompleted": true,
+          "laneCompleted": false,
+          "peakCrowned": true
+        },
+        "structures": {
+          "riverCompleted": 3,
+          "laneCompleted": 0,
+          "peakCrowned": 2,
+          "tradeRoute": 0,
+          "snowline": 1,
+          "estuary": 10,
+          "spring": 5,
+          "portCall": 1,
+          "cliff": 0
+        },
+        "largestGroups": {
+          "GR": 9,
+          "FO": 18,
+          "FI": 14,
+          "HO": 3,
+          "RI": 5,
+          "RA": 4,
+          "MT": 8,
+          "OC": 5,
+          "LA": 1
+        },
+        "mountainDrawShare": 0.18666666666666668,
+        "legalMovesRemaining": 156
+      },
+      {
+        "seed": 221734,
+        "score": 3192,
+        "placements": 106,
+        "draws": 106,
+        "discards": 0,
+        "reproduction": 0.4716981132075472,
+        "perfects": 2,
+        "maxStreak": 6,
+        "windsShiftFires": 0,
+        "deadBoard": false,
+        "finished": true,
+        "questCompletionRate": 0.7647058823529411,
+        "epicDone": true,
+        "flagsCompleted": 2,
+        "channels": {
+          "edges": 1150,
+          "streaksPerfects": 350,
+          "quests": 1067,
+          "structures": 518,
+          "endGame": 107
+        },
+        "engagement": {
+          "riverCompleted": true,
+          "laneCompleted": true,
+          "peakCrowned": false
+        },
+        "structures": {
+          "riverCompleted": 1,
+          "laneCompleted": 1,
+          "peakCrowned": 0,
+          "tradeRoute": 1,
+          "snowline": 0,
+          "estuary": 11,
+          "spring": 7,
+          "portCall": 3,
+          "cliff": 0
+        },
+        "largestGroups": {
+          "GR": 10,
+          "FO": 10,
+          "FI": 23,
+          "HO": 7,
+          "RI": 7,
+          "RA": 9,
+          "MT": 3,
+          "OC": 6,
+          "LA": 2
+        },
+        "mountainDrawShare": 0.08490566037735849,
+        "legalMovesRemaining": 270
+      },
+      {
+        "seed": 229653,
+        "score": 2939,
+        "placements": 101,
+        "draws": 101,
+        "discards": 0,
+        "reproduction": 0.44554455445544555,
+        "perfects": 1,
+        "maxStreak": 9,
+        "windsShiftFires": 0,
+        "deadBoard": false,
+        "finished": true,
+        "questCompletionRate": 0.5555555555555556,
+        "epicDone": true,
+        "flagsCompleted": 3,
+        "channels": {
+          "edges": 1179,
+          "streaksPerfects": 347,
+          "quests": 828,
+          "structures": 469,
+          "endGame": 116
+        },
+        "engagement": {
+          "riverCompleted": true,
+          "laneCompleted": true,
+          "peakCrowned": true
+        },
+        "structures": {
+          "riverCompleted": 1,
+          "laneCompleted": 2,
+          "peakCrowned": 4,
+          "tradeRoute": 0,
+          "snowline": 2,
+          "estuary": 5,
+          "spring": 8,
+          "portCall": 4,
+          "cliff": 0
+        },
+        "largestGroups": {
+          "GR": 23,
+          "FO": 6,
+          "FI": 20,
+          "HO": 8,
+          "RI": 4,
+          "RA": 9,
+          "MT": 7,
+          "OC": 8,
+          "LA": 2
+        },
+        "mountainDrawShare": 0.2079207920792079,
+        "legalMovesRemaining": 198
+      },
+      {
+        "seed": 237572,
+        "score": 1961,
+        "placements": 88,
+        "draws": 88,
+        "discards": 0,
+        "reproduction": 0.36363636363636365,
+        "perfects": 0,
+        "maxStreak": 11,
+        "windsShiftFires": 1,
+        "deadBoard": false,
+        "finished": true,
+        "questCompletionRate": 0.7272727272727273,
+        "epicDone": false,
+        "flagsCompleted": 3,
+        "channels": {
+          "edges": 888,
+          "streaksPerfects": 255,
+          "quests": 381,
+          "structures": 385,
+          "endGame": 52
+        },
+        "engagement": {
+          "riverCompleted": false,
+          "laneCompleted": true,
+          "peakCrowned": true
+        },
+        "structures": {
+          "riverCompleted": 0,
+          "laneCompleted": 2,
+          "peakCrowned": 1,
+          "tradeRoute": 0,
+          "snowline": 0,
+          "estuary": 6,
+          "spring": 10,
+          "portCall": 4,
+          "cliff": 0
+        },
+        "largestGroups": {
+          "GR": 9,
+          "FO": 13,
+          "FI": 22,
+          "HO": 11,
+          "RI": 4,
+          "RA": 2,
+          "MT": 2,
+          "OC": 6,
+          "LA": 1
+        },
+        "mountainDrawShare": 0.09090909090909091,
+        "legalMovesRemaining": 258
+      },
+      {
+        "seed": 245491,
+        "score": 2925,
+        "placements": 95,
+        "draws": 95,
+        "discards": 0,
+        "reproduction": 0.4105263157894737,
+        "perfects": 1,
+        "maxStreak": 7,
+        "windsShiftFires": 1,
+        "deadBoard": false,
+        "finished": true,
+        "questCompletionRate": 0.6428571428571429,
+        "epicDone": false,
+        "flagsCompleted": 3,
+        "channels": {
+          "edges": 1047,
+          "streaksPerfects": 318,
+          "quests": 594,
+          "structures": 868,
+          "endGame": 98
+        },
+        "engagement": {
+          "riverCompleted": true,
+          "laneCompleted": true,
+          "peakCrowned": true
+        },
+        "structures": {
+          "riverCompleted": 1,
+          "laneCompleted": 5,
+          "peakCrowned": 2,
+          "tradeRoute": 0,
+          "snowline": 1,
+          "estuary": 5,
+          "spring": 5,
+          "portCall": 10,
+          "cliff": 0
+        },
+        "largestGroups": {
+          "GR": 11,
+          "FO": 19,
+          "FI": 19,
+          "HO": 3,
+          "RI": 3,
+          "RA": 8,
+          "MT": 5,
+          "OC": 9,
+          "LA": 2
+        },
+        "mountainDrawShare": 0.14736842105263157,
+        "legalMovesRemaining": 222
+      },
+      {
+        "seed": 253410,
+        "score": 2925,
+        "placements": 110,
+        "draws": 110,
+        "discards": 0,
+        "reproduction": 0.4909090909090909,
+        "perfects": 4,
+        "maxStreak": 9,
+        "windsShiftFires": 1,
+        "deadBoard": false,
+        "finished": true,
+        "questCompletionRate": 0.75,
+        "epicDone": false,
+        "flagsCompleted": 1,
+        "channels": {
+          "edges": 1223,
+          "streaksPerfects": 472,
+          "quests": 757,
+          "structures": 387,
+          "endGame": 86
+        },
+        "engagement": {
+          "riverCompleted": true,
+          "laneCompleted": true,
+          "peakCrowned": false
+        },
+        "structures": {
+          "riverCompleted": 4,
+          "laneCompleted": 2,
+          "peakCrowned": 0,
+          "tradeRoute": 0,
+          "snowline": 0,
+          "estuary": 12,
+          "spring": 5,
+          "portCall": 5,
+          "cliff": 0
+        },
+        "largestGroups": {
+          "GR": 20,
+          "FO": 20,
+          "FI": 17,
+          "HO": 16,
+          "RI": 4,
+          "RA": 11,
+          "MT": 1,
+          "OC": 3,
+          "LA": 3
+        },
+        "mountainDrawShare": 0.045454545454545456,
+        "legalMovesRemaining": 240
+      },
+      {
+        "seed": 261329,
+        "score": 2441,
+        "placements": 100,
+        "draws": 100,
+        "discards": 0,
+        "reproduction": 0.44,
+        "perfects": 0,
+        "maxStreak": 7,
+        "windsShiftFires": 0,
+        "deadBoard": false,
+        "finished": true,
+        "questCompletionRate": 0.5333333333333333,
+        "epicDone": true,
+        "flagsCompleted": 6,
+        "channels": {
+          "edges": 1025,
+          "streaksPerfects": 258,
+          "quests": 871,
+          "structures": 220,
+          "endGame": 67
+        },
+        "engagement": {
+          "riverCompleted": true,
+          "laneCompleted": true,
+          "peakCrowned": true
+        },
+        "structures": {
+          "riverCompleted": 3,
+          "laneCompleted": 1,
+          "peakCrowned": 1,
+          "tradeRoute": 0,
+          "snowline": 0,
+          "estuary": 8,
+          "spring": 9,
+          "portCall": 2,
+          "cliff": 0
+        },
+        "largestGroups": {
+          "GR": 7,
+          "FO": 25,
+          "FI": 12,
+          "HO": 7,
+          "RI": 3,
+          "RA": 3,
+          "MT": 3,
+          "OC": 11,
+          "LA": 2
+        },
+        "mountainDrawShare": 0.12,
+        "legalMovesRemaining": 240
+      },
+      {
+        "seed": 269248,
+        "score": 1852,
+        "placements": 83,
+        "draws": 83,
+        "discards": 0,
+        "reproduction": 0.3253012048192771,
+        "perfects": 0,
+        "maxStreak": 9,
+        "windsShiftFires": 0,
+        "deadBoard": false,
+        "finished": true,
+        "questCompletionRate": 0.5714285714285714,
+        "epicDone": false,
+        "flagsCompleted": 2,
+        "channels": {
+          "edges": 899,
+          "streaksPerfects": 230,
+          "quests": 471,
+          "structures": 185,
+          "endGame": 67
+        },
+        "engagement": {
+          "riverCompleted": true,
+          "laneCompleted": true,
+          "peakCrowned": false
+        },
+        "structures": {
+          "riverCompleted": 1,
+          "laneCompleted": 1,
+          "peakCrowned": 0,
+          "tradeRoute": 0,
+          "snowline": 0,
+          "estuary": 4,
+          "spring": 3,
+          "portCall": 5,
+          "cliff": 0
+        },
+        "largestGroups": {
+          "GR": 10,
+          "FO": 18,
+          "FI": 8,
+          "HO": 6,
+          "RI": 3,
+          "RA": 7,
+          "MT": 1,
+          "OC": 6,
+          "LA": 1
+        },
+        "mountainDrawShare": 0.04819277108433735,
+        "legalMovesRemaining": 216
+      },
+      {
+        "seed": 277167,
+        "score": 1501,
+        "placements": 76,
+        "draws": 76,
+        "discards": 0,
+        "reproduction": 0.2631578947368421,
+        "perfects": 0,
+        "maxStreak": 6,
+        "windsShiftFires": 0,
+        "deadBoard": false,
+        "finished": true,
+        "questCompletionRate": 0.45454545454545453,
+        "epicDone": false,
+        "flagsCompleted": 2,
+        "channels": {
+          "edges": 854,
+          "streaksPerfects": 232,
+          "quests": 254,
+          "structures": 103,
+          "endGame": 58
+        },
+        "engagement": {
+          "riverCompleted": true,
+          "laneCompleted": false,
+          "peakCrowned": true
+        },
+        "structures": {
+          "riverCompleted": 1,
+          "laneCompleted": 0,
+          "peakCrowned": 1,
+          "tradeRoute": 0,
+          "snowline": 1,
+          "estuary": 8,
+          "spring": 6,
+          "portCall": 1,
+          "cliff": 0
+        },
+        "largestGroups": {
+          "GR": 12,
+          "FO": 6,
+          "FI": 12,
+          "HO": 8,
+          "RI": 2,
+          "RA": 3,
+          "MT": 5,
+          "OC": 4,
+          "LA": 1
+        },
+        "mountainDrawShare": 0.14473684210526316,
+        "legalMovesRemaining": 174
+      },
+      {
+        "seed": 285086,
+        "score": 2931,
+        "placements": 105,
+        "draws": 105,
+        "discards": 0,
+        "reproduction": 0.4666666666666667,
+        "perfects": 1,
+        "maxStreak": 9,
+        "windsShiftFires": 0,
+        "deadBoard": false,
+        "finished": true,
+        "questCompletionRate": 0.5909090909090909,
+        "epicDone": true,
+        "flagsCompleted": 0,
+        "channels": {
+          "edges": 1169,
+          "streaksPerfects": 378,
+          "quests": 959,
+          "structures": 336,
+          "endGame": 89
+        },
+        "engagement": {
+          "riverCompleted": true,
+          "laneCompleted": true,
+          "peakCrowned": true
+        },
+        "structures": {
+          "riverCompleted": 3,
+          "laneCompleted": 1,
+          "peakCrowned": 2,
+          "tradeRoute": 0,
+          "snowline": 2,
+          "estuary": 11,
+          "spring": 7,
+          "portCall": 3,
+          "cliff": 0
+        },
+        "largestGroups": {
+          "GR": 5,
+          "FO": 24,
+          "FI": 18,
+          "HO": 8,
+          "RI": 2,
+          "RA": 4,
+          "MT": 7,
+          "OC": 12,
+          "LA": 2
+        },
+        "mountainDrawShare": 0.14285714285714285,
+        "legalMovesRemaining": 270
+      },
+      {
+        "seed": 293005,
+        "score": 3215,
+        "placements": 112,
+        "draws": 112,
+        "discards": 0,
+        "reproduction": 0.5,
+        "perfects": 2,
+        "maxStreak": 11,
+        "windsShiftFires": 0,
+        "deadBoard": false,
+        "finished": true,
+        "questCompletionRate": 0.7777777777777778,
+        "epicDone": true,
+        "flagsCompleted": 3,
+        "channels": {
+          "edges": 1360,
+          "streaksPerfects": 455,
+          "quests": 1064,
+          "structures": 260,
+          "endGame": 76
+        },
+        "engagement": {
+          "riverCompleted": false,
+          "laneCompleted": false,
+          "peakCrowned": true
+        },
+        "structures": {
+          "riverCompleted": 0,
+          "laneCompleted": 0,
+          "peakCrowned": 5,
+          "tradeRoute": 0,
+          "snowline": 1,
+          "estuary": 15,
+          "spring": 8,
+          "portCall": 1,
+          "cliff": 0
+        },
+        "largestGroups": {
+          "GR": 12,
+          "FO": 26,
+          "FI": 17,
+          "HO": 15,
+          "RI": 4,
+          "RA": 3,
+          "MT": 5,
+          "OC": 8,
+          "LA": 1
+        },
+        "mountainDrawShare": 0.10714285714285714,
+        "legalMovesRemaining": 228
+      },
+      {
+        "seed": 300924,
+        "score": 3712,
+        "placements": 132,
+        "draws": 132,
+        "discards": 0,
+        "reproduction": 0.5757575757575758,
+        "perfects": 1,
+        "maxStreak": 8,
+        "windsShiftFires": 0,
+        "deadBoard": false,
+        "finished": true,
+        "questCompletionRate": 0.7857142857142857,
+        "epicDone": false,
+        "flagsCompleted": 4,
+        "channels": {
+          "edges": 1493,
+          "streaksPerfects": 428,
+          "quests": 1200,
+          "structures": 496,
+          "endGame": 95
+        },
+        "engagement": {
+          "riverCompleted": true,
+          "laneCompleted": true,
+          "peakCrowned": true
+        },
+        "structures": {
+          "riverCompleted": 1,
+          "laneCompleted": 2,
+          "peakCrowned": 1,
+          "tradeRoute": 0,
+          "snowline": 0,
+          "estuary": 12,
+          "spring": 5,
+          "portCall": 4,
+          "cliff": 0
+        },
+        "largestGroups": {
+          "GR": 16,
+          "FO": 15,
+          "FI": 17,
+          "HO": 25,
+          "RI": 3,
+          "RA": 11,
+          "MT": 3,
+          "OC": 5,
+          "LA": 1
+        },
+        "mountainDrawShare": 0.05303030303030303,
+        "legalMovesRemaining": 318
+      },
+      {
+        "seed": 308843,
+        "score": 2072,
+        "placements": 79,
+        "draws": 79,
+        "discards": 0,
+        "reproduction": 0.2911392405063291,
+        "perfects": 1,
+        "maxStreak": 15,
+        "windsShiftFires": 1,
+        "deadBoard": false,
+        "finished": true,
+        "questCompletionRate": 0.5555555555555556,
+        "epicDone": false,
+        "flagsCompleted": 2,
+        "channels": {
+          "edges": 847,
+          "streaksPerfects": 296,
+          "quests": 445,
+          "structures": 429,
+          "endGame": 55
+        },
+        "engagement": {
+          "riverCompleted": true,
+          "laneCompleted": true,
+          "peakCrowned": false
+        },
+        "structures": {
+          "riverCompleted": 2,
+          "laneCompleted": 2,
+          "peakCrowned": 0,
+          "tradeRoute": 0,
+          "snowline": 0,
+          "estuary": 8,
+          "spring": 3,
+          "portCall": 4,
+          "cliff": 0
+        },
+        "largestGroups": {
+          "GR": 14,
+          "FO": 10,
+          "FI": 10,
+          "HO": 5,
+          "RI": 2,
+          "RA": 3,
+          "MT": 4,
+          "OC": 5,
+          "LA": 3
+        },
+        "mountainDrawShare": 0.17721518987341772,
+        "legalMovesRemaining": 204
+      },
+      {
+        "seed": 316762,
+        "score": 2281,
+        "placements": 79,
+        "draws": 79,
+        "discards": 0,
+        "reproduction": 0.2911392405063291,
+        "perfects": 0,
+        "maxStreak": 5,
+        "windsShiftFires": 0,
+        "deadBoard": false,
+        "finished": true,
+        "questCompletionRate": 0.5,
+        "epicDone": true,
+        "flagsCompleted": 0,
+        "channels": {
+          "edges": 840,
+          "streaksPerfects": 241,
+          "quests": 587,
+          "structures": 524,
+          "endGame": 89
+        },
+        "engagement": {
+          "riverCompleted": true,
+          "laneCompleted": true,
+          "peakCrowned": true
+        },
+        "structures": {
+          "riverCompleted": 1,
+          "laneCompleted": 1,
+          "peakCrowned": 3,
+          "tradeRoute": 1,
+          "snowline": 1,
+          "estuary": 3,
+          "spring": 6,
+          "portCall": 4,
+          "cliff": 0
+        },
+        "largestGroups": {
+          "GR": 11,
+          "FO": 8,
+          "FI": 11,
+          "HO": 4,
+          "RI": 1,
+          "RA": 8,
+          "MT": 6,
+          "OC": 7,
+          "LA": 1
+        },
+        "mountainDrawShare": 0.16455696202531644,
+        "legalMovesRemaining": 198
+      },
+      {
+        "seed": 324681,
+        "score": 4002,
+        "placements": 127,
+        "draws": 127,
+        "discards": 0,
+        "reproduction": 0.5590551181102362,
+        "perfects": 2,
+        "maxStreak": 5,
+        "windsShiftFires": 0,
+        "deadBoard": false,
+        "finished": true,
+        "questCompletionRate": 0.782608695652174,
+        "epicDone": true,
+        "flagsCompleted": 1,
+        "channels": {
+          "edges": 1456,
+          "streaksPerfects": 346,
+          "quests": 1441,
+          "structures": 611,
+          "endGame": 148
+        },
+        "engagement": {
+          "riverCompleted": true,
+          "laneCompleted": true,
+          "peakCrowned": true
+        },
+        "structures": {
+          "riverCompleted": 6,
+          "laneCompleted": 2,
+          "peakCrowned": 4,
+          "tradeRoute": 0,
+          "snowline": 1,
+          "estuary": 15,
+          "spring": 12,
+          "portCall": 4,
+          "cliff": 0
+        },
+        "largestGroups": {
+          "GR": 10,
+          "FO": 14,
+          "FI": 21,
+          "HO": 7,
+          "RI": 5,
+          "RA": 11,
+          "MT": 8,
+          "OC": 14,
+          "LA": 3
+        },
+        "mountainDrawShare": 0.13385826771653545,
+        "legalMovesRemaining": 282
+      },
+      {
+        "seed": 332600,
+        "score": 1612,
+        "placements": 86,
+        "draws": 86,
+        "discards": 0,
+        "reproduction": 0.3488372093023256,
+        "perfects": 1,
+        "maxStreak": 7,
+        "windsShiftFires": 0,
+        "deadBoard": false,
+        "finished": true,
+        "questCompletionRate": 0.5384615384615384,
+        "epicDone": false,
+        "flagsCompleted": 2,
+        "channels": {
+          "edges": 897,
+          "streaksPerfects": 227,
+          "quests": 300,
+          "structures": 121,
+          "endGame": 67
+        },
+        "engagement": {
+          "riverCompleted": true,
+          "laneCompleted": false,
+          "peakCrowned": true
+        },
+        "structures": {
+          "riverCompleted": 4,
+          "laneCompleted": 0,
+          "peakCrowned": 1,
+          "tradeRoute": 0,
+          "snowline": 1,
+          "estuary": 7,
+          "spring": 11,
+          "portCall": 1,
+          "cliff": 0
+        },
+        "largestGroups": {
+          "GR": 26,
+          "FO": 11,
+          "FI": 14,
+          "HO": 7,
+          "RI": 3,
+          "RA": 3,
+          "MT": 5,
+          "OC": 6,
+          "LA": 1
+        },
+        "mountainDrawShare": 0.1744186046511628,
+        "legalMovesRemaining": 198
+      },
+      {
+        "seed": 340519,
+        "score": 3805,
+        "placements": 114,
+        "draws": 114,
+        "discards": 0,
+        "reproduction": 0.5087719298245614,
+        "perfects": 2,
+        "maxStreak": 5,
+        "windsShiftFires": 2,
+        "deadBoard": false,
+        "finished": true,
+        "questCompletionRate": 0.6875,
+        "epicDone": true,
+        "flagsCompleted": 5,
+        "channels": {
+          "edges": 1281,
+          "streaksPerfects": 377,
+          "quests": 1066,
+          "structures": 999,
+          "endGame": 82
+        },
+        "engagement": {
+          "riverCompleted": true,
+          "laneCompleted": true,
+          "peakCrowned": true
+        },
+        "structures": {
+          "riverCompleted": 5,
+          "laneCompleted": 4,
+          "peakCrowned": 1,
+          "tradeRoute": 1,
+          "snowline": 0,
+          "estuary": 14,
+          "spring": 6,
+          "portCall": 8,
+          "cliff": 0
+        },
+        "largestGroups": {
+          "GR": 18,
+          "FO": 15,
+          "FI": 17,
+          "HO": 7,
+          "RI": 3,
+          "RA": 7,
+          "MT": 4,
+          "OC": 6,
+          "LA": 2
+        },
+        "mountainDrawShare": 0.10526315789473684,
+        "legalMovesRemaining": 264
+      },
+      {
+        "seed": 348438,
+        "score": 3014,
+        "placements": 116,
+        "draws": 116,
+        "discards": 0,
+        "reproduction": 0.5172413793103449,
+        "perfects": 1,
+        "maxStreak": 7,
+        "windsShiftFires": 0,
+        "deadBoard": false,
+        "finished": true,
+        "questCompletionRate": 0.8125,
+        "epicDone": true,
+        "flagsCompleted": 4,
+        "channels": {
+          "edges": 1308,
+          "streaksPerfects": 352,
+          "quests": 934,
+          "structures": 287,
+          "endGame": 133
+        },
+        "engagement": {
+          "riverCompleted": true,
+          "laneCompleted": false,
+          "peakCrowned": true
+        },
+        "structures": {
+          "riverCompleted": 6,
+          "laneCompleted": 0,
+          "peakCrowned": 5,
+          "tradeRoute": 0,
+          "snowline": 2,
+          "estuary": 12,
+          "spring": 10,
+          "portCall": 1,
+          "cliff": 0
+        },
+        "largestGroups": {
+          "GR": 11,
+          "FO": 11,
+          "FI": 14,
+          "HO": 8,
+          "RI": 5,
+          "RA": 10,
+          "MT": 8,
+          "OC": 9,
+          "LA": 3
+        },
+        "mountainDrawShare": 0.16379310344827586,
+        "legalMovesRemaining": 240
+      },
+      {
+        "seed": 356357,
+        "score": 2678,
+        "placements": 104,
+        "draws": 104,
+        "discards": 0,
+        "reproduction": 0.46153846153846156,
+        "perfects": 1,
+        "maxStreak": 11,
+        "windsShiftFires": 0,
+        "deadBoard": false,
+        "finished": true,
+        "questCompletionRate": 0.6875,
+        "epicDone": true,
+        "flagsCompleted": 3,
+        "channels": {
+          "edges": 1120,
+          "streaksPerfects": 359,
+          "quests": 802,
+          "structures": 300,
+          "endGame": 97
+        },
+        "engagement": {
+          "riverCompleted": true,
+          "laneCompleted": true,
+          "peakCrowned": true
+        },
+        "structures": {
+          "riverCompleted": 2,
+          "laneCompleted": 1,
+          "peakCrowned": 2,
+          "tradeRoute": 0,
+          "snowline": 2,
+          "estuary": 7,
+          "spring": 7,
+          "portCall": 3,
+          "cliff": 0
+        },
+        "largestGroups": {
+          "GR": 9,
+          "FO": 16,
+          "FI": 19,
+          "HO": 3,
+          "RI": 3,
+          "RA": 5,
+          "MT": 7,
+          "OC": 11,
+          "LA": 2
+        },
+        "mountainDrawShare": 0.17307692307692307,
+        "legalMovesRemaining": 234
+      },
+      {
+        "seed": 364276,
+        "score": 1709,
+        "placements": 81,
+        "draws": 81,
+        "discards": 0,
+        "reproduction": 0.30864197530864196,
+        "perfects": 0,
+        "maxStreak": 10,
+        "windsShiftFires": 0,
+        "deadBoard": false,
+        "finished": true,
+        "questCompletionRate": 0.6666666666666666,
+        "epicDone": false,
+        "flagsCompleted": 1,
+        "channels": {
+          "edges": 881,
+          "streaksPerfects": 234,
+          "quests": 410,
+          "structures": 87,
+          "endGame": 97
+        },
+        "engagement": {
+          "riverCompleted": true,
+          "laneCompleted": false,
+          "peakCrowned": true
+        },
+        "structures": {
+          "riverCompleted": 1,
+          "laneCompleted": 0,
+          "peakCrowned": 1,
+          "tradeRoute": 0,
+          "snowline": 0,
+          "estuary": 4,
+          "spring": 8,
+          "portCall": 1,
+          "cliff": 0
+        },
+        "largestGroups": {
+          "GR": 11,
+          "FO": 21,
+          "FI": 10,
+          "HO": 3,
+          "RI": 7,
+          "RA": 6,
+          "MT": 4,
+          "OC": 6,
+          "LA": 1
+        },
+        "mountainDrawShare": 0.1111111111111111,
+        "legalMovesRemaining": 174
+      },
+      {
+        "seed": 372195,
+        "score": 2025,
+        "placements": 93,
+        "draws": 93,
+        "discards": 0,
+        "reproduction": 0.3978494623655914,
+        "perfects": 0,
+        "maxStreak": 4,
+        "windsShiftFires": 0,
+        "deadBoard": false,
+        "finished": true,
+        "questCompletionRate": 0.6666666666666666,
+        "epicDone": false,
+        "flagsCompleted": 3,
+        "channels": {
+          "edges": 955,
+          "streaksPerfects": 185,
+          "quests": 569,
+          "structures": 226,
+          "endGame": 90
+        },
+        "engagement": {
+          "riverCompleted": true,
+          "laneCompleted": true,
+          "peakCrowned": false
+        },
+        "structures": {
+          "riverCompleted": 3,
+          "laneCompleted": 1,
+          "peakCrowned": 0,
+          "tradeRoute": 0,
+          "snowline": 1,
+          "estuary": 8,
+          "spring": 6,
+          "portCall": 2,
+          "cliff": 0
+        },
+        "largestGroups": {
+          "GR": 7,
+          "FO": 18,
+          "FI": 11,
+          "HO": 7,
+          "RI": 2,
+          "RA": 9,
+          "MT": 5,
+          "OC": 5,
+          "LA": 1
+        },
+        "mountainDrawShare": 0.10752688172043011,
+        "legalMovesRemaining": 228
+      },
+      {
+        "seed": 380114,
+        "score": 4611,
+        "placements": 110,
+        "draws": 110,
+        "discards": 0,
+        "reproduction": 0.4909090909090909,
+        "perfects": 1,
+        "maxStreak": 8,
+        "windsShiftFires": 1,
+        "deadBoard": false,
+        "finished": true,
+        "questCompletionRate": 0.7857142857142857,
+        "epicDone": true,
+        "flagsCompleted": 2,
+        "channels": {
+          "edges": 1256,
+          "streaksPerfects": 304,
+          "quests": 1212,
+          "structures": 1722,
+          "endGame": 117
+        },
+        "engagement": {
+          "riverCompleted": true,
+          "laneCompleted": true,
+          "peakCrowned": true
+        },
+        "structures": {
+          "riverCompleted": 2,
+          "laneCompleted": 5,
+          "peakCrowned": 4,
+          "tradeRoute": 2,
+          "snowline": 1,
+          "estuary": 13,
+          "spring": 5,
+          "portCall": 10,
+          "cliff": 0
+        },
+        "largestGroups": {
+          "GR": 11,
+          "FO": 18,
+          "FI": 14,
+          "HO": 3,
+          "RI": 3,
+          "RA": 8,
+          "MT": 8,
+          "OC": 11,
+          "LA": 4
+        },
+        "mountainDrawShare": 0.1,
+        "legalMovesRemaining": 258
+      },
+      {
+        "seed": 388033,
+        "score": 2903,
+        "placements": 92,
+        "draws": 92,
+        "discards": 0,
+        "reproduction": 0.391304347826087,
+        "perfects": 1,
+        "maxStreak": 8,
+        "windsShiftFires": 0,
+        "deadBoard": false,
+        "finished": true,
+        "questCompletionRate": 0.8,
+        "epicDone": true,
+        "flagsCompleted": 1,
+        "channels": {
+          "edges": 1013,
+          "streaksPerfects": 277,
+          "quests": 813,
+          "structures": 710,
+          "endGame": 90
+        },
+        "engagement": {
+          "riverCompleted": true,
+          "laneCompleted": true,
+          "peakCrowned": false
+        },
+        "structures": {
+          "riverCompleted": 4,
+          "laneCompleted": 2,
+          "peakCrowned": 0,
+          "tradeRoute": 1,
+          "snowline": 1,
+          "estuary": 10,
+          "spring": 6,
+          "portCall": 6,
+          "cliff": 0
+        },
+        "largestGroups": {
+          "GR": 14,
+          "FO": 9,
+          "FI": 17,
+          "HO": 6,
+          "RI": 4,
+          "RA": 7,
+          "MT": 5,
+          "OC": 5,
+          "LA": 2
+        },
+        "mountainDrawShare": 0.10869565217391304,
+        "legalMovesRemaining": 318
+      }
+    ]
+  }
+}

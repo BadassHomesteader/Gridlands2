@@ -84,29 +84,32 @@ test('mountain pity: +4pp to foothills, taken proportionally from soft archetype
   assert.ok(base.foothills < w.foothills);
 });
 
-test('finale doubles harbor and lane, then the 35% family cap clamps LAST', () => {
+test('finale doubles harbor and lane, then the finale family cap clamps LAST', () => {
   const st = gs({
     placements: 60, stackRemaining: 10,
     largestOceanGroup: 5, laneAdmissibleFrontier: 4,
   });
   const w = computeWeights(st);
   close(sum(w), 100, 'total');
-  close(sum(w, FAMILY), 35, 'family capped at exactly 35 during finale');
-  // doubling survives inside the family: harbor:lane ratio = (5*2):(5*2)
-  close(w.harbor, w.lane, 'harbor == lane after x2');
-  // non-family ratios untouched
+  close(sum(w, FAMILY), CONFIG.weights.oceanFamilyCap.finale,
+    'family capped at exactly the finale cap');
+  // doubling survives inside the family: harbor:lane keeps its table ratio
   const t = CONFIG.weights.table.voyage;
+  close(w.harbor / w.lane, t.harbor / t.lane, 'harbor:lane ratio preserved after x2');
+  // non-family ratios untouched
   close(w.meadow / w.river, t.meadow / t.river, 'non-family ratios preserved');
 });
 
 test('ocean-family cap enforced after pity modifiers (strict order)', () => {
-  // tide stage + harbor pity pushes family over 25% -> scaled back to exactly 25
+  // tide stage + harbor pity pushes family over the cap -> scaled back exactly
   const st = gs({ needyLaneRoute: true, largestOceanGroup: 5, laneAdmissibleFrontier: 4 });
   const w = computeWeights(st);
   close(sum(w), 100, 'total');
-  close(sum(w, FAMILY), 25, 'family clamped to tide cap 25');
-  // within-family proportions still reflect the x3 pity (harbor 12 vs coast 12)
-  close(w.harbor / w.coast, (4 * 3) / 12, 'pity preserved within family');
+  close(sum(w, FAMILY), CONFIG.weights.oceanFamilyCap.tide, 'family clamped to the tide cap');
+  // within-family proportions still reflect the x3 pity
+  const t = CONFIG.weights.table.tide;
+  const mult = CONFIG.valves.harborPity.mult;
+  close(w.harbor / w.coast, (t.harbor * mult) / t.coast, 'pity preserved within family');
 });
 
 test('cap not applied when family is under it', () => {

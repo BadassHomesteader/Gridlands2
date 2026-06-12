@@ -53,8 +53,9 @@ test('numeric spawn: target = base + die, reward formula, progress prefilled', (
       assert.equal(q.tiles, def.tiles);
     } else {
       assert.ok(q.target >= def.base + 1 && q.target <= def.base + def.die, q.id);
-      assert.equal(q.points, 100 + 10 * q.target);
-      assert.equal(q.tiles, Math.min(2 + Math.ceil(q.target / 4), 4));
+      const R = CONFIG.quests.reward;
+      assert.equal(q.points, R.base + R.perTarget * q.target);
+      assert.equal(q.tiles, Math.min(R.tileBase + Math.ceil(q.target / R.tileDivisor), R.tileCap));
       assert.equal(q.progress, 0);
     }
   }
@@ -77,67 +78,78 @@ test('availability stages gate the pool; openTheRoute needs lanesUnlocked', () =
   assert.equal(spawnStandardQuest(bare(), env({ stage: 'voyage' }), mulberry32(1), only), null);
   const q = spawnStandardQuest(bare(), env({ stage: 'voyage', lanesUnlocked: true }), mulberry32(1), only);
   assert.equal(q.id, 'openTheRoute');
-  assert.equal(q.minLaneLength, 5);
+  assert.equal(q.minLaneLength, CONFIG.quests.standard.find((d) => d.id === 'openTheRoute').minLaneLength);
 });
 
-test('scaling: +2 per completed standard quest, capped at base+8', () => {
+test('scaling: +perCompletion per completed standard quest, capped at base+cap', () => {
   const only = pool('bigForest');
+  const SC = CONFIG.quests.scaling;
+  const base = CONFIG.quests.standard.find((d) => d.id === 'bigForest').base;
   const rng = () => 0; // d3 -> 1
+  const roomy = () => env({ tilesRemaining: 1000 }); // guard must not bind here
   let st = bare();
-  assert.equal(spawnStandardQuest(st, env(), rng, only).target, 6 + 1);
+  assert.equal(spawnStandardQuest(st, roomy(), rng, only).target, base + 1);
   st = bare();
   st.completedStandard = 2;
-  assert.equal(spawnStandardQuest(st, env(), rng, only).target, 6 + 1 + 4);
+  assert.equal(spawnStandardQuest(st, roomy(), rng, only).target, base + 1 + 2 * SC.perCompletion);
   st = bare();
-  st.completedStandard = 10;
-  assert.equal(spawnStandardQuest(st, env(), rng, only).target, 6 + 1 + 8, 'cap at base+8');
+  st.completedStandard = 100;
+  assert.equal(spawnStandardQuest(st, roomy(), rng, only).target,
+    base + 1 + SC.capAboveBase, 'cap above base');
 });
 
-test('dead-quest guard: clamps to progress + tilesRemaining/4, skips infeasible', () => {
+test('dead-quest guard: clamps to progress + tilesRemaining/divisor, skips infeasible', () => {
   const only = pool('bigForest');
+  const div = CONFIG.quests.deadGuardDivisor;
+  const def = CONFIG.quests.standard.find((d) => d.id === 'bigForest');
+  const R = CONFIG.quests.reward;
   const b = createBoard();
   put(b, ALL('FO'), 0, 0);
   put(b, ALL('FO'), 1, 0); // FO group of 2
-  // guard = 2 + floor(8/4) = 4 < base 6 -> even the base violates: no spawn
+  // guard = 2 + floor(few/div) < base -> even the base violates: no spawn
+  const few = (def.base - 2 - 1) * div; // guard lands one below base
   assert.equal(
-    spawnStandardQuest(bare(), env({ board: b, tilesRemaining: 8 }), () => 0.999, only),
+    spawnStandardQuest(bare(), env({ board: b, tilesRemaining: few }), () => 0.999, only),
     null);
-  // guard = 2 + 5 = 7; rolled 6 + 3 = 9 -> clamped to 7
-  const q = spawnStandardQuest(bare(), env({ board: b, tilesRemaining: 20 }), () => 0.999, only);
-  assert.equal(q.target, 7);
-  assert.equal(q.points, 170);
+  // generous guard clamps the max roll (base + die) down to the guard
+  const some = (def.base - 1) * div; // guard = 2 + base - 1 < base + die
+  const guard = 2 + Math.floor(some / div);
+  const q = spawnStandardQuest(bare(), env({ board: b, tilesRemaining: some }), () => 0.999, only);
+  assert.equal(q.target, guard);
+  assert.equal(q.points, R.base + R.perTarget * guard);
   assert.equal(q.progress, 2);
 });
 
-test('one-shot quests leave the pool after 2 completions', () => {
+test('one-shot quests leave the pool after max completions', () => {
   const only = pool('riversEnd');
+  const M = only.quests.oneShotMaxCompletions;
   const st = bare();
-  st.oneShotCompletions.riversEnd = 1;
+  st.oneShotCompletions.riversEnd = M - 1;
   assert.ok(spawnStandardQuest(st, env({ stage: 'tide' }), mulberry32(1), only));
   const st2 = bare();
-  st2.oneShotCompletions.riversEnd = 2;
+  st2.oneShotCompletions.riversEnd = M;
   assert.equal(spawnStandardQuest(st2, env({ stage: 'tide' }), mulberry32(1), only), null);
 });
 
-test('riversEnd completes on an estuary event, pays 100/2, respawns until pool exit', () => {
+test('riversEnd completes on an estuary event, pays def points/tiles, respawns until pool exit', () => {
   const only = pool('riversEnd');
+  const def = only.quests.standard.find((d) => d.id === 'riversEnd');
+  const M = only.quests.oneShotMaxCompletions;
   const st = bare();
   const e = env({ stage: 'tide' });
   spawnStandardQuest(st, e, mulberry32(1), only);
   const tile = tt(ALL('GR'));
 
-  let res = processPlacement(st, e, result(tile, 0, 0, [{ type: 'estuary' }]), mulberry32(2), only);
-  assert.equal(res.completed.length, 1);
-  assert.equal(res.completed[0].id, 'riversEnd');
-  assert.equal(res.points, 100);
-  assert.equal(res.tiles, 2);
-  assert.equal(st.oneShotCompletions.riversEnd, 1);
-  assert.equal(st.standard.length, 1, 'respawned (1 of 2 completions used)');
-
-  res = processPlacement(st, e, result(tile, 1, 0, [{ type: 'estuary' }]), mulberry32(3), only);
-  assert.equal(res.completed.length, 1);
-  assert.equal(st.oneShotCompletions.riversEnd, 2);
-  assert.equal(st.standard.length, 0, 'one-shot left the pool after 2');
+  for (let i = 1; i <= M; i++) {
+    const res = processPlacement(st, e, result(tile, i - 1, 0, [{ type: 'estuary' }]), mulberry32(i + 1), only);
+    assert.equal(res.completed.length, 1);
+    assert.equal(res.completed[0].id, 'riversEnd');
+    assert.equal(res.points, def.points);
+    assert.equal(res.tiles, def.tiles);
+    assert.equal(st.oneShotCompletions.riversEnd, i);
+    if (i < M) assert.equal(st.standard.length, 1, 'respawned (completions left)');
+  }
+  assert.equal(st.standard.length, 0, 'one-shot left the pool after max completions');
 });
 
 test('twinHarbors: satisfied-on-board check; never spawns pre-completed', () => {
@@ -181,7 +193,7 @@ test('rerolls: replacement excludes the old id, decrements; none left -> null', 
   assert.equal(st2.standard.length, 1, 'old quest kept');
 });
 
-test('flag quest: spawns on flagged placement, grows, completes at 60/2', () => {
+test('flag quest: spawns on flagged placement, grows, completes at flag points/tiles', () => {
   const st = bare();
   const b = createBoard();
   const e = env({ board: b });
@@ -201,8 +213,8 @@ test('flag quest: spawns on flagged placement, grows, completes at 60/2', () => 
   }
   assert.equal(res.completed.length, 1);
   assert.equal(res.completed[0].id, f.id);
-  assert.equal(res.points, 60);
-  assert.equal(res.tiles, 2);
+  assert.equal(res.points, CONFIG.quests.flag.points);
+  assert.equal(res.tiles, CONFIG.quests.flag.tiles);
   assert.equal(st.flagsCompleted, 1);
   assert.equal(st.flags.length, 0);
 });
@@ -310,13 +322,13 @@ test('epic transcontinental: trade route with rail >=6 and lane >=5', () => {
   assert.equal(res.tiles, 6);
 });
 
-test('createQuestState: 3 distinct standard quests, one epic, 1 starting reroll', () => {
+test('createQuestState: 3 distinct standard quests, one epic, starting rerolls', () => {
   const st = createQuestState(env(), mulberry32(7));
   assert.equal(st.standard.length, 3);
   assert.equal(new Set(st.standard.map((q) => q.id)).size, 3);
   assert.ok(CONFIG.quests.epics.some((d) => d.id === st.epic.id));
   assert.equal(st.epic.done, false);
-  assert.equal(st.rerolls, 1);
+  assert.equal(st.rerolls, CONFIG.quests.rerolls.atStart);
   assert.equal(activeQuests(st).length, 4);
 });
 

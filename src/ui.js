@@ -22,13 +22,14 @@ const STAGE_BANNERS = {
   finale: { title: 'Finale', sub: 'the last tiles — cap rivers, crown peaks' },
 };
 
-// Junction first-time tooltips (DESIGN §3.3).
+// Junction first-time tooltips (DESIGN §3.3). Point values come from the live
+// CONFIG (the authority on tunables) so retuning can never desync this copy.
 const JUNCTION_TIPS = {
-  spring: 'Spring — a river begins in the rock (+30)',
-  estuary: 'Estuary — the river meets the sea (+40)',
-  portCall: 'Port call — a lane reaches the dock (+25)',
-  cliff: 'Cliff — the range drops into the surf (+10)',
-  mountainCoast: 'The range needs land before the sea — mountains never touch open water',
+  spring: (j) => `Spring — a river begins in the rock (+${j.source})`,
+  estuary: (j) => `Estuary — the river meets the sea (+${j.estuary})`,
+  portCall: (j) => `Port call — a lane reaches the dock (+${j.portCall})`,
+  cliff: (j) => `Cliff — the range drops into the surf (+${j.cliff})`,
+  mountainCoast: () => 'The range needs land before the sea — mountains never touch open water',
 };
 
 // Top-down hex preview colors (warm cousins of the renderer PALETTE).
@@ -64,11 +65,14 @@ export function createUI(handlers = {}) {
   let displayScore = 0;
   let shownTips = new Set();
   let bannerTimer = null;
+  let lastStreak = 0;
 
   function bindGame(g) {
     game = g;
     displayScore = g.score;
     shownTips = new Set();
+    lastStreak = g.ctx?.streak || 0;
+    dom.streakPill.classList.remove('pulse', 'broken');
     dom.score.textContent = String(g.score);
     dom.hud.classList.remove('hidden');
     dom.goScreen.classList.add('hidden');
@@ -94,11 +98,21 @@ export function createUI(handlers = {}) {
     dom.score.classList.add('bump');
   }
 
+  // restartable one-shot animation class on the streak pill
+  function flashStreakPill(cls) {
+    dom.streakPill.classList.remove('pulse', 'broken');
+    void dom.streakPill.offsetWidth; // restart the animation
+    dom.streakPill.classList.add(cls);
+  }
+
   function refreshStats() {
     dom.stack.textContent = game.zen ? '∞' : String(Math.max(0, game.stackRemaining));
     const streak = game.ctx.streak || 0;
     dom.streak.textContent = String(streak);
     dom.streakPill.classList.toggle('live', streak > 0);
+    if (streak > lastStreak) flashStreakPill('pulse');
+    else if (streak < lastStreak) flashStreakPill('broken');
+    lastStreak = streak;
     [...dom.streakDots.children].forEach((d, i) => d.classList.toggle('on', i < streak));
   }
 
@@ -219,8 +233,28 @@ export function createUI(handlers = {}) {
 
   // --- popups (floating +N at a screen position, color-coded by channel) ---
 
+  // recent spawn positions, so simultaneous popups never overlap
+  const activePopups = [];
+
   function popup(x, y, text, channel = 'edges', delay = 0, sub = '') {
     const make = () => {
+      const now = performance.now();
+      for (let i = activePopups.length - 1; i >= 0; i--) {
+        if (now - activePopups[i].t > 1300) activePopups.splice(i, 1);
+      }
+      let py = y;
+      let hit = true;
+      let guard = 0;
+      while (hit && guard++ < 30) {
+        hit = false;
+        for (const p of activePopups) {
+          if (Math.abs(p.x - x) < 130 && Math.abs(p.y - py) < 42) {
+            py = p.y - 42; // stack upward, never on top of a live popup
+            hit = true;
+          }
+        }
+      }
+      activePopups.push({ x, y: py, t: now });
       const d = document.createElement('div');
       d.className = `popup ${channel}`;
       d.textContent = text;
@@ -230,9 +264,9 @@ export function createUI(handlers = {}) {
         d.appendChild(s);
       }
       d.style.left = `${Math.round(x)}px`;
-      d.style.top = `${Math.round(y)}px`;
+      d.style.top = `${Math.round(py)}px`;
       dom.popups.appendChild(d);
-      setTimeout(() => d.remove(), 1600);
+      setTimeout(() => d.remove(), 2000);
     };
     if (delay > 0) setTimeout(make, delay); else make();
   }
@@ -249,9 +283,9 @@ export function createUI(handlers = {}) {
   }
 
   function junctionTip(type) {
-    if (shownTips.has(type) || !JUNCTION_TIPS[type]) return;
+    if (shownTips.has(type) || !JUNCTION_TIPS[type] || !game) return;
     shownTips.add(type);
-    toast(JUNCTION_TIPS[type], { tip: true });
+    toast(JUNCTION_TIPS[type](game.config.scoring.junction), { tip: true });
   }
 
   // --- stage banner ---
