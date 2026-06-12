@@ -165,9 +165,32 @@ export function perfect(consecutive = 1) {
   if (consecutive > 1) tone(1567.98, 0.7, 'sine', 0.16, 0.5); // escalation sparkle
 }
 
-export function quest() {
+// Quest completion; big payouts (one-shots, epics) get an extra brass swell.
+export function quest(points = 0) {
   [392, 523.25, 659.25, 783.99].forEach((f, i) => tone(f, 0.6, 'triangle', 0.22, i * 0.13));
   tone(1046.5, 0.9, 'sine', 0.15, 0.5);
+  if (points >= 150) {
+    [1318.51, 1567.98].forEach((f, i) => tone(f, 0.8, 'sine', 0.12, 0.7 + i * 0.15));
+    horn(261.63, 0.9, 0.1, 0.6, { cutoff: 900 });
+  }
+}
+
+// Payout-scaled flourish for structure/junction points (celebration ∝ points):
+// a modest two-note chime, a bright arpeggio, or the full horn-topped cascade.
+// Lane/trade completions keep their dedicated ship horn instead (main.js skips
+// fanfare for those), so the soundscape never doubles up.
+export function fanfare(points) {
+  if (points >= 200) {
+    horn(196, 0.7, 0.2, 0, { cutoff: 850 });
+    horn(261.63, 0.7, 0.2, 0.18, { cutoff: 900 });
+    horn(392, 1.3, 0.22, 0.36, { cutoff: 950 });
+    [1046.5, 1318.51, 1567.98, 2093].forEach((f, i) => tone(f, 0.8, 'sine', 0.1, 0.5 + i * 0.12));
+  } else if (points >= 80) {
+    [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => tone(f, 0.5, 'triangle', 0.16, i * 0.09));
+    tone(1567.98, 0.6, 'sine', 0.1, 0.45);
+  } else {
+    [659.25, 783.99].forEach((f, i) => tone(f, 0.4, 'triangle', 0.12, i * 0.1));
+  }
 }
 
 // Ship horn for laneCompleted / tradeRoute (two blasts for a trade route).

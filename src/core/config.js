@@ -116,7 +116,17 @@ export const CONFIG = {
     maxFlags: 3,
     flagRate: 0.20,           // §4 flag modifier / §6.3
     themedRewardRate: 0.90,   // §6.4
-    reward: { base: 8, perTarget: 3, tileBase: 3, tileDivisor: 4, tileCap: 3 },
+    // reward base 8 -> 6 (fun-fix round 4): the sealed/one-shot refresh
+    // converts dead slots into completable quests; the extra completions
+    // pushed the quests share to 30.1pp (cap 30). Points-only cut — the
+    // flat-3 TILES are the placement floor's lifeline and stay untouched.
+    // Round 4 verification (seeds 5001/5007): fresh seed 5001 landed the
+    // quests share at 30.4pp (cap 30). base 6 -> 4 fixed the share but broke
+    // quest completion on 5007 (60.0% vs >= 60: the bot weighs q.points, so
+    // cutting STANDARD rewards cuts standard pursuit). base stays 6; the
+    // share margin comes from epic/flag points instead (below) — channels
+    // the completion gate never counts.
+    reward: { base: 6, perTarget: 3, tileBase: 3, tileDivisor: 4, tileCap: 3 },
     scaling: { perCompletion: 3, capAboveBase: 12 },
     deadGuardDivisor: 8,      // target <= bestProgress + floor(tilesRemaining / divisor)
     // DESIGN AMENDMENT (tuning round 2): the dead-quest guard extends to
@@ -127,7 +137,9 @@ export const CONFIG = {
     autoRefreshSlack: 1,
     oneShotMaxCompletions: 1,
     rerolls: { atStart: 2, atTide: 1, atVoyage: 0 }, // 3 total per session
-    flag: { targetBase: 3, targetDie: 4, points: 22, tiles: 2 }, // grow by 3 + d4
+    // flag points 22 -> 18 (round 4 verification): points-only quests-share
+    // trim that leaves standard-quest completion untouched; tiles stay 2.
+    flag: { targetBase: 3, targetDie: 4, points: 18, tiles: 2 }, // grow by 3 + d4
     standard: [
       { id: 'bigForest', metric: 'group:FO', base: 5, die: 3, from: 'pastoral' },
       { id: 'bigField', metric: 'group:FI', base: 5, die: 3, from: 'pastoral' },
@@ -140,16 +152,20 @@ export const CONFIG = {
       { id: 'twinHarbors', oneShot: true, points: 150, tiles: 1, from: 'tide' },
       { id: 'openTheRoute', oneShot: true, points: 250, tiles: 3, minLaneLength: 3, from: 'lanesUnlocked' },
     ],
+    // Epic points 400/400/280 -> 360/360/250 (round 4 verification):
+    // points-only quests-share trim. Completion is feasibility-driven (the
+    // bot's epic-plan bonus still dwarfs every alternative placement), so
+    // the ~55%+/-15 epic gate is untouched; tiles stay 4/4/4.
     epics: [
-      { id: 'theIsland', points: 400, tiles: 4, minRegion: 3 },
+      { id: 'theIsland', points: 360, tiles: 4, minRegion: 3 },
       // DESIGN AMENDMENT (round 1): rail >=6 -> >=4 (aligned with the trade
       // route's own rail threshold) and lane >=5 -> >=3; the original is
       // unbuildable against median lane supply (~4 lane draws per run).
       // DESIGN AMENDMENT (round 2): lane >=3 -> >=2 — the epic's identity is
       // carried by the rail>=4 trade route; median completed-lane length is
       // ~1.5, so lane >=3 left the epic at ~10% vs the ~55%+/-15 gate.
-      { id: 'transcontinental', points: 400, tiles: 4, minRail: 4, minLane: 2 },
-      { id: 'crownTheRange', points: 280, tiles: 4, peaks: 2 },
+      { id: 'transcontinental', points: 360, tiles: 4, minRail: 4, minLane: 2 },
+      { id: 'crownTheRange', points: 250, tiles: 4, peaks: 2 },
     ],
   },
 

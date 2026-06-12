@@ -1,6 +1,7 @@
 // Simulated human session: real start button, real canvas clicks projected
-// through a replica of the scene camera, rotate via 'r', one undo, one
-// discard, mute toggle. Captures console errors.
+// through the LIVE scene camera (window.GL2.scene hook — no replica, no
+// drift), rotate via 'r', one undo, one discard, mute toggle. Captures
+// console errors.
 import { chromium } from 'playwright';
 import { spawn } from 'node:child_process';
 
@@ -24,28 +25,19 @@ try {
   // 1. real start button
   await page.click('#btn-start');
   await page.waitForTimeout(1200);
-  const started = await page.evaluate(() => !!(window.GL2 && window.GL2.game));
-  log('started via #btn-start:', started);
+  const started = await page.evaluate(() =>
+    !!(window.GL2 && window.GL2.game && window.GL2.scene));
+  log('started via #btn-start (game + scene hooks):', started);
 
-  // camera replica: focus stays (0,0,0), zoom 18 (no pan/zoom inputs sent)
-  await page.evaluate(async () => {
-    const THREE = await import('three');
-    const canvas = document.getElementById('game-canvas');
-    const cam = new THREE.PerspectiveCamera(45, canvas.clientWidth / canvas.clientHeight, 0.1, 400);
-    cam.position.set(0, 18, 13.5);
-    cam.lookAt(0, 0, 0);
-    cam.updateMatrixWorld();
-    window.__proj = (q, r) => {
-      const x = Math.sqrt(3) * q + (Math.sqrt(3) / 2) * r;
-      const z = 1.5 * r;
-      const v = new THREE.Vector3(x, 0, z).project(cam);
-      const rect = canvas.getBoundingClientRect();
-      return {
-        x: (v.x * 0.5 + 0.5) * rect.width + rect.left,
-        y: (-v.y * 0.5 + 0.5) * rect.height + rect.top,
-      };
-    };
-  });
+  // real click projection: the live scene camera via the window.GL2.scene
+  // hook (cellToWorld + worldToScreen) — replaces the old replica camera
+  // that drifted as soon as centroid-follow / auto-zoom moved the real one.
+  const projectCell = (q, r) => page.evaluate(([cq, cr]) => {
+    const s = window.GL2.scene;
+    const p = s.cellToWorld(cq, cr);
+    const v = s.worldToScreen(p.x, 0, p.z);
+    return { x: v.x, y: v.y };
+  }, [q, r]);
 
   let clickPlacements = 0;
   let fallbacks = 0;
@@ -68,9 +60,13 @@ try {
       await page.waitForTimeout(60);
     }
     const before = await page.evaluate(() => window.GL2.game.placements);
-    const pt = await page.evaluate(([q, r]) => window.__proj(q, r), [pick.q, pick.r]);
+    let pt = await projectCell(pick.q, pick.r);
     await page.mouse.move(pt.x, pt.y);
     await page.waitForTimeout(120);
+    // re-project right before the click: centroid-follow / auto-zoom may have
+    // eased the camera during the hover pause
+    pt = await projectCell(pick.q, pick.r);
+    await page.mouse.move(pt.x, pt.y);
     await page.mouse.click(pt.x, pt.y);
     await page.waitForTimeout(450);
     const after = await page.evaluate(() => window.GL2.game.placements);

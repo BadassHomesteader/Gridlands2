@@ -1,7 +1,10 @@
-// DOM HUD wiring: score count-up, stack/streak pills, quest panel (standard +
-// epic + flags with progress bars), tile previews, score popups, toasts, stage
-// banners (DESIGN §7.3 names), junction first-time tooltips (§3.3), game-over
-// tally. Pure DOM — no three.js; main.js feeds it game state and screen coords.
+// DOM HUD wiring: score count-up, stack/streak pills, trade-income pip, quest
+// panel (standard + epic + flags with progress bars), tile previews, score
+// popups (payout-scaled), toasts, stage banners (DESIGN §7.3 names), junction
+// first-time tooltips (§3.3), game-over tally. Pure DOM — no three.js (core
+// imports are fine); main.js feeds it game state and screen coords.
+
+import { traceNetworks } from './core/board.js';
 
 const QUEST_NAMES = {
   bigForest: 'Big Forest', bigField: 'Big Field', bigVillage: 'Big Village',
@@ -30,6 +33,7 @@ const JUNCTION_TIPS = {
   portCall: (j) => `Port call — a lane reaches the dock (+${j.portCall})`,
   cliff: (j) => `Cliff — the range drops into the surf (+${j.cliff})`,
   mountainCoast: () => 'The range needs land before the sea — mountains never touch open water',
+  harborDock: () => 'Lanes must reach this dock through open water — keep its sea path clear',
 };
 
 // Top-down hex preview colors (warm cousins of the renderer PALETTE).
@@ -51,6 +55,7 @@ export function createUI(handlers = {}) {
   const dom = {
     hud: el('hud'), score: el('score'), stack: el('stack'),
     streak: el('streak'), streakPill: el('streak-pill'), streakDots: el('streak-dots'),
+    tradePill: el('trade-pill'), tradeRoutes: el('trade-routes'), tradeRate: el('trade-rate'),
     banner: el('stage-banner'), toasts: el('toasts'), popups: el('popups'),
     questList: el('quest-list'), rerollCount: el('reroll-count'),
     cvCurrent: el('cv-current'), cvNext1: el('cv-next1'), cvNext2: el('cv-next2'),
@@ -107,6 +112,7 @@ export function createUI(handlers = {}) {
 
   function refreshStats() {
     dom.stack.textContent = game.zen ? '∞' : String(Math.max(0, game.stackRemaining));
+    refreshTrade();
     const streak = game.ctx.streak || 0;
     dom.streak.textContent = String(streak);
     dom.streakPill.classList.toggle('live', streak > 0);
@@ -114,6 +120,31 @@ export function createUI(handlers = {}) {
     else if (streak < lastStreak) flashStreakPill('broken');
     lastStreak = streak;
     [...dom.streakDots.children].forEach((d, i) => d.classList.toggle('on', i < streak));
+  }
+
+  // --- trade income pip (§5.7 made visible: '⚓N +M/tile') ---
+
+  function refreshTrade() {
+    if (!dom.tradePill) return;
+    const routes = game.config.rules.tradeIncome
+      ? traceNetworks(game.board, 'LA').filter((n) => n.completed).length
+      : 0;
+    dom.tradePill.classList.toggle('hidden', routes === 0);
+    if (routes > 0) {
+      const ti = game.config.scoring.tradeIncome; // CONFIG is the authority
+      dom.tradeRoutes.textContent = String(routes);
+      dom.tradeRate.textContent = `+${Math.min(routes * ti.perRoute, ti.cap)}/tile`;
+    }
+  }
+
+  // Income just paid: pulse the pip and float a small +N off it.
+  function pulseTrade(amount) {
+    if (!dom.tradePill) return;
+    dom.tradePill.classList.remove('hidden', 'pulse');
+    void dom.tradePill.offsetWidth; // restart the animation
+    dom.tradePill.classList.add('pulse');
+    const r = dom.tradePill.getBoundingClientRect();
+    if (r.width) popup(r.left + r.width / 2, r.top - 10, `+${amount}`, 'structures', 0, 'trade income', 0.82);
   }
 
   // --- quest panel ---
@@ -236,7 +267,9 @@ export function createUI(handlers = {}) {
   // recent spawn positions, so simultaneous popups never overlap
   const activePopups = [];
 
-  function popup(x, y, text, channel = 'edges', delay = 0, sub = '') {
+  // mag scales the popup with the actual payout (celebration ∝ points);
+  // 1 = the classic size, >=1.7 adds a golden mega glow.
+  function popup(x, y, text, channel = 'edges', delay = 0, sub = '', mag = 1) {
     const make = () => {
       const now = performance.now();
       for (let i = activePopups.length - 1; i >= 0; i--) {
@@ -256,7 +289,8 @@ export function createUI(handlers = {}) {
       }
       activePopups.push({ x, y: py, t: now });
       const d = document.createElement('div');
-      d.className = `popup ${channel}`;
+      d.className = `popup ${channel}` + (mag >= 1.7 ? ' mega' : '');
+      d.style.setProperty('--mag', String(mag));
       d.textContent = text;
       if (sub) {
         const s = document.createElement('small');
@@ -361,6 +395,6 @@ export function createUI(handlers = {}) {
 
   return {
     bindGame, update, refresh, refreshPreviews, bumpScore,
-    popup, toast, junctionTip, banner, setMuted, showGameOver, questName,
+    popup, pulseTrade, toast, junctionTip, banner, setMuted, showGameOver, questName,
   };
 }

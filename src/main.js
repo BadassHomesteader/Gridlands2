@@ -2,6 +2,7 @@
 // start screen -> new Game -> scene.init -> rAF loop. Exposes window.GL2.
 
 import { Game } from './core/game.js';
+import { CONFIG } from './core/config.js';
 import { mulberry32 } from './core/rng.js';
 import { parseKey } from './core/hex.js';
 import { traceNetworks } from './core/board.js';
@@ -58,11 +59,29 @@ function handleEvents(events = []) {
       ui.toast('The winds shift — a fresh tile blows in');
     } else if (e.type === 'rerollGranted') {
       ui.toast('Quest reroll earned');
+    } else if (e.type === 'questRefreshed') {
+      // Fun-fix round 4 (DESIGN §6.1): sealed/unsatisfiable refreshes are the
+      // loud ones — the quest could never complete, so the free re-deal is
+      // "a new opportunity", never a loss. 'pace' keeps its silent fade.
+      if (e.reason === 'sealed' || e.reason === 'unsatisfiable') {
+        ui.toast('A new opportunity — that quest could no longer be finished');
+      }
     } else if (e.type === 'gameOver') {
       // normally fired again by the scene once the final tile settles
       setTimeout(() => handleGameOver(e.deadBoard), 4000);
     }
   }
+}
+
+// Celebration ∝ payout: popup size and fanfare scale with the actual points
+// in the PlacementResult, so retuned junction/route values stay coherent.
+function magFor(points) {
+  if (points >= 200) return 1.85;
+  if (points >= 80) return 1.5;
+  if (points >= 40) return 1.3;
+  if (points >= 15) return 1.05;
+  if (points >= 8) return 0.95;
+  return 0.82;
 }
 
 function applyResult(result) {
@@ -73,24 +92,36 @@ function applyResult(result) {
   const p = sceneH.cellToWorld(result.q, result.r);
   const pos = sceneH.worldToScreen(p.x, 0.8, p.z);
   let idx = 0;
-  const pop = (text, channel, sub) => {
-    if (!pos.behind) ui.popup(pos.x, pos.y - idx * 26, text, channel, 280 + idx * 220, sub);
+  const pop = (text, channel, sub, mag = 1) => {
+    if (!pos.behind) ui.popup(pos.x, pos.y - idx * 26, text, channel, 280 + idx * 220, sub, mag);
     idx++;
   };
   const b = result.breakdown;
-  if (b.edges > 0) pop(`+${b.edges}`, 'edges');
-  if (b.streak > 0) pop(`+${b.streak}`, 'streak', `streak ×${result.combo}`);
-  if (result.perfect) pop(`Perfect! +${b.perfect}`, 'perfect');
-  const structPts = b.junctions + b.structures + b.tradeIncome;
-  if (structPts > 0) pop(`+${structPts}`, 'structures');
-  for (const q of result.questsCompleted) pop(`+${q.points}`, 'quests', ui.questName(q));
+  if (b.edges > 0) pop(`+${b.edges}`, 'edges', '', magFor(b.edges));
+  if (b.streak > 0) pop(`+${b.streak}`, 'streak', `streak ×${result.combo}`, magFor(b.streak));
+  if (result.perfect) pop(`Perfect! +${b.perfect}`, 'perfect', '', magFor(b.perfect));
+  const structPts = b.junctions + b.structures;
+  if (structPts > 0) pop(`+${structPts}`, 'structures', '', magFor(structPts));
+  if (b.tradeIncome > 0) ui.pulseTrade(b.tradeIncome); // income pays at the pip
+  let questPts = 0;
+  for (const q of result.questsCompleted) {
+    questPts += q.points;
+    pop(`+${q.points}`, 'quests', ui.questName(q), magFor(q.points));
+  }
 
   const matches = result.edgeMatches.filter((m) => m.matched).length;
   if (matches > 0) setTimeout(() => audio.chime(matches, result.combo), 300);
   if (result.perfect) setTimeout(() => audio.perfect(game.ctx.consecutivePerfects || 1), 550);
-  if (result.questsCompleted.length) setTimeout(() => audio.quest(), 750);
+  if (result.questsCompleted.length) setTimeout(() => audio.quest(questPts), 750);
+  // payout-scaled flourish for big structure points; lane/trade completions
+  // already get the full ship horn via the scene event, so skip those here
+  const hasHorn = result.networkEvents.some(
+    (e) => e.type === 'laneCompleted' || e.type === 'tradeRoute');
+  if (!hasHorn && structPts >= 30) setTimeout(() => audio.fanfare(structPts), 480);
 
   for (const e of result.networkEvents) ui.junctionTip(e.type);
+  // first harbor: the dock lesson (lanes need open water to reach it)
+  if (result.tile.dockEdges && result.tile.dockEdges.length) ui.junctionTip('harborDock');
   handleEvents(result.events);
   ui.bumpScore();
   ui.refresh();
@@ -141,6 +172,7 @@ function doDiscard() {
   handleEvents(res.events);
   ui.refresh();
   refreshGhost();
+  sceneH.refreshPerfectSpots(); // new tile in hand -> re-rate the gold rings
   if (game.over) {
     const dead = res.events.some((e) => e.type === 'gameOver' && e.deadBoard);
     setTimeout(() => handleGameOver(dead), 500);
@@ -212,6 +244,7 @@ async function handleGameOver(deadBoard = false) {
   if (gameOverDone || !game) return;
   gameOverDone = true;
   sceneH.clearGhost();
+  sceneH.refreshPerfectSpots(); // game over -> the invitations retire
   sceneH.effects.sunset();
   audio.curtain();
   ui.toast(deadBoard ? 'No room remains for the last tiles' : 'The last tile settles — curtain call');
@@ -275,8 +308,13 @@ function startLoop() {
   rafId = requestAnimationFrame(frame);
 }
 
-// start screen
+// start screen — slider range/default come from CONFIG (the authority on
+// every tunable number; the balance gates are verified at stack.start)
 const slider = $('tile-count');
+slider.min = String(CONFIG.stack.slider[0]);
+slider.max = String(CONFIG.stack.slider[1]);
+slider.value = String(CONFIG.stack.start);
+$('tile-count-out').textContent = slider.value;
 slider.addEventListener('input', () => {
   $('tile-count-out').textContent = slider.value;
 });
@@ -307,6 +345,7 @@ window.addEventListener('keydown', (e) => {
     game.rotate(1);
     audio.rotateTick();
     refreshGhost();
+    sceneH.refreshPerfectSpots(); // rotation may make a gold ring fillable
     ui.refreshPreviews();
   } else if (k === 'd') {
     doDiscard();
@@ -322,7 +361,8 @@ window.GL2 = {
   game: null,
   version: VERSION,
   testStart(seed = 1337) {
-    startGame({ seed: seed >>> 0, tileCount: 45, zen: false });
+    // tileCount omitted -> Game uses CONFIG.stack.start (the tuned economy)
+    startGame({ seed: seed >>> 0, zen: false });
     return true;
   },
   testPlace(q, r, rot = 0) {

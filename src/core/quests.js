@@ -6,7 +6,7 @@
 import { CONFIG } from './config.js';
 import { key, parseKey, neighbor } from './hex.js';
 import { isSoft } from './terrain.js';
-import { groups, largestGroupSize, traceNetworks } from './board.js';
+import { groups, largestGroupSize, traceNetworks, validPlacements } from './board.js';
 import { makeTile, rotateTile } from './tiles.js';
 import { pick, shuffle } from './rng.js';
 
@@ -84,6 +84,87 @@ export function isIslandRinged(board, minRegion = 3) {
   return false;
 }
 
+// A structure (group or network) is sealed when no tile in it has a `terrain`
+// edge facing empty space — it can never grow or merge again. Same detection
+// the flag fade uses (§6.3); generalized for the round-4 sealed-quest guard.
+function groupSealed(board, g, terrain) {
+  for (const k of g) {
+    const t = board.get(k);
+    const { q, r } = parseKey(k);
+    for (let dir = 0; dir < 6; dir++) {
+      if (t.edges[dir] !== terrain) continue;
+      const n = neighbor(q, r, dir);
+      if (!board.has(key(n.q, n.r))) return false;
+    }
+  }
+  return true;
+}
+
+// SEALED-QUEST GUARD (fun-fix round 4): a numeric quest is sealed-dead when
+// a sealed structure is what the panel is tracking and nothing alive can
+// still deliver the target. Sealed structures (zero open edges) are frozen
+// forever; unsealed ones can in principle grow one tile per placement and
+// all merge into one (a merge tile joins whole structures), so the
+// optimistic reach of the live candidates is sum(unsealed sizes) +
+// tilesRemaining — never condemns a quest a perfect player could complete
+// from what is on the board. Group quests track the LARGEST group (the
+// §6.1 subtlety): the guard fires only when NO unsealed candidate, nor any
+// union of them, could reach the target with the tiles remaining.
+// Hypothetical from-scratch structures deliberately do NOT count: the fun
+// review's sealed quest squatted ~30 placements precisely because "a new
+// one could still start" never materializes — pace death stays the round-2
+// allowance guard's job, sealed death is immediate.
+export function metricDeadSealed(board, metric, target, tilesRemaining) {
+  const [, terrain] = metric.split(':');
+  let sealedMax = 0;
+  let unsealedSum = 0;
+  for (const g of groups(board, terrain)) {
+    if (groupSealed(board, g, terrain)) sealedMax = Math.max(sealedMax, g.size);
+    else unsealedSum += g.size;
+  }
+  if (sealedMax === 0) return false; // nothing sealed is being tracked
+  if (target <= sealedMax) return false; // frozen best already satisfies it
+  if (unsealedSum === 0) return true; // only sealed candidates exist: dead
+  return unsealedSum + (tilesRemaining ?? Infinity) < target;
+}
+
+// Lane probes (both §4 lane variants) for "can a lane tile still enter the
+// board at all" — the minimum constructibility test for openTheRoute.
+const LANE_PROBES = [
+  ['LA', 'OC', 'OC', 'LA', 'OC', 'OC'],
+  ['LA', 'OC', 'LA', 'OC', 'OC', 'OC'],
+].map((edges, i) => ({
+  id: 'probe-lane-' + i, archetype: 'lane', edges,
+  dockEdges: [], crane: false, flag: null, seed: 0, rotation: 0,
+}));
+
+export function laneCanEnter(board, config = CONFIG) {
+  return LANE_PROBES.some((p) => validPlacements(board, p, config).length > 0);
+}
+
+// ONE-SHOT SATISFIABILITY (fun-fix round 4): can this one-shot still complete
+// in principle? Checked on spawn (availableDefs) and after every placement.
+// openTheRoute needs a route of length >= minLaneLength: completed routes are
+// closed (unextendable), and a route end facing plain ocean can never become
+// a dock (completion requires zero open-water ends), so only incomplete
+// routes with an open end (lane edge facing empty) still count — plus the
+// option of a brand-new route, which needs a lane tile to be admissible
+// somewhere AND enough tiles remaining. riversEnd / twinHarbors stay
+// in-principle satisfiable on any growable board (their stage gates and the
+// twinHarbors board check already cover spawn sanity).
+export function oneShotSatisfiable(q, board, tilesRemaining, config = CONFIG) {
+  if (q.id !== 'openTheRoute') return true;
+  const need = q.minLaneLength || 1;
+  const budget = tilesRemaining ?? Infinity;
+  let growableSum = 0;
+  for (const net of traceNetworks(board, 'LA')) {
+    if (net.completed || net.openWaterEnds > 0 || net.openEnds === 0) continue;
+    growableSum += net.size;
+  }
+  if (growableSum > 0 && growableSum + budget >= need) return true;
+  return budget >= need && laneCanEnter(board, config);
+}
+
 // env (caller-maintained): { board, stage, lanesUnlocked, tilesRemaining }
 
 function availableDefs(state, env, config, excludeId) {
@@ -96,6 +177,8 @@ function availableDefs(state, env, config, excludeId) {
     } else if (STAGE_ORDER[env.stage] < STAGE_ORDER[def.from]) return false;
     if (def.oneShot && (state.oneShotCompletions[def.id] || 0) >= qc.oneShotMaxCompletions) return false;
     if (def.id === 'twinHarbors' && twinHarborsOnBoard(env.board)) return false;
+    // fun-fix round 4: never deal a one-shot that can no longer complete
+    if (def.oneShot && !oneShotSatisfiable(def, env.board, env.tilesRemaining, config)) return false;
     return true;
   });
 }
@@ -205,20 +288,6 @@ function spawnFlag(state, board, result, rng, config) {
   });
 }
 
-// A group is sealed when no tile in it has a `terrain` edge facing empty space.
-function groupSealed(board, g, terrain) {
-  for (const k of g) {
-    const t = board.get(k);
-    const { q, r } = parseKey(k);
-    for (let dir = 0; dir < 6; dir++) {
-      if (t.edges[dir] !== terrain) continue;
-      const n = neighbor(q, r, dir);
-      if (!board.has(key(n.q, n.r))) return false;
-    }
-  }
-  return true;
-}
-
 function oneShotProgress(q, events, board) {
   if (q.id === 'riversEnd') return events.some((e) => e.type === 'estuary') ? 1 : 0;
   if (q.id === 'twinHarbors') return twinHarborsOnBoard(board) ? 1 : 0;
@@ -298,18 +367,37 @@ export function processPlacement(state, env, result, rng, config = CONFIG) {
   // (target - progress > floor(tilesRemaining/divisor) + slack) could never
   // have spawned in this position — keeping it is dealer error (cozy
   // mandate). It is replaced for free; if no replacement fits, it stays.
+  //
+  // DESIGN AMENDMENT (fun-fix round 4): the guard also covers geometric
+  // death, not just pace. Reasons (carried on the refresh entry so the UI
+  // can toast "a new opportunity" for the loud ones, cozy mandate):
+  //   'sealed'        numeric quest tracking a sealed structure below target
+  //                   while no unsealed candidate could reach the target
+  //                   with the tiles remaining (metricDeadSealed);
+  //   'unsatisfiable' one-shot that can no longer complete in principle
+  //                   (openTheRoute with no growable route and no lane entry);
+  //   'pace'          the round-2 allowance guard (silent re-deal, as before).
   if (config.quests.autoRefresh) {
-    const allowance = Math.floor((env.tilesRemaining ?? Infinity) / config.quests.deadGuardDivisor) +
+    const tilesRemaining = env.tilesRemaining ?? Infinity;
+    const allowance = Math.floor(tilesRemaining / config.quests.deadGuardDivisor) +
       (config.quests.autoRefreshSlack ?? 0);
     for (let i = 0; i < state.standard.length; i++) {
       const q = state.standard[i];
-      if (q.oneShot || q.target - q.progress <= allowance) continue;
+      let reason = null;
+      if (q.oneShot) {
+        if (!oneShotSatisfiable(q, board, tilesRemaining, config)) reason = 'unsatisfiable';
+      } else if (metricDeadSealed(board, q.metric, q.target, tilesRemaining)) {
+        reason = 'sealed';
+      } else if (q.target - q.progress > allowance) {
+        reason = 'pace';
+      }
+      if (!reason) continue;
       const fresh = spawnStandardQuest(state, env, rng, config, q.id);
       if (!fresh) continue;
       state.standard.pop(); // spawn appended; move it into the dead slot
       state.standard[i] = fresh;
       state.autoRefreshed++;
-      refreshed.push({ old: { ...q }, fresh });
+      refreshed.push({ old: { ...q }, fresh, reason });
     }
   }
 
@@ -387,16 +475,86 @@ const THEMES = {
 
 const FLAG_THEMES = { HO: 'hamlet', FO: 'pureSoft', FI: 'meadow', GR: 'meadow' };
 
+// THEMED PLACEABILITY (fun-fix round 4): per-archetype probe tiles covering
+// every structurally distinct §4 variant. An archetype is themable only if
+// some probe has a legal placement on the current board — an epic-themed Lane
+// tile arriving pre-Tide (zero ocean) is a guaranteed winds-shift that
+// silently burns the reward. All-soft layouts share one probe: soft↔soft is
+// always legal regardless of soft type, so legality is layout-independent.
+function probeTile(archetype, edges, dockEdges = []) {
+  return {
+    id: 'probe-' + archetype, archetype, edges, dockEdges,
+    crane: false, flag: null, seed: 0, rotation: 0,
+  };
+}
+
+const SOFT_PROBE = [probeTile('soft', ['GR', 'GR', 'GR', 'GR', 'GR', 'GR'])];
+
+const ARCHETYPE_PROBES = {
+  meadow: SOFT_PROBE,
+  hamlet: SOFT_PROBE,
+  pureSoft: SOFT_PROBE,
+  river: [
+    probeTile('river', ['RI', 'GR', 'GR', 'RI', 'GR', 'GR']),
+    probeTile('river', ['RI', 'GR', 'RI', 'GR', 'GR', 'GR']),
+    probeTile('river', ['RI', 'RI', 'GR', 'GR', 'GR', 'GR']),
+  ],
+  rail: [
+    probeTile('rail', ['RA', 'GR', 'GR', 'RA', 'GR', 'GR']),
+    probeTile('rail', ['RA', 'GR', 'RA', 'GR', 'GR', 'GR']),
+    probeTile('rail', ['RA', 'RA', 'GR', 'GR', 'GR', 'GR']),
+  ],
+  foothills: [
+    probeTile('foothills', ['MT', 'MT', 'GR', 'GR', 'GR', 'GR']),
+    probeTile('foothills', ['MT', 'GR', 'MT', 'GR', 'GR', 'GR']),
+  ],
+  highMountain: [probeTile('highMountain', ['MT', 'MT', 'MT', 'MT', 'GR', 'GR'])],
+  coast: [
+    probeTile('coast', ['OC', 'OC', 'GR', 'GR', 'GR', 'GR']),
+    probeTile('coast', ['OC', 'OC', 'OC', 'GR', 'GR', 'GR']),
+  ],
+  estuary: [
+    probeTile('estuary', ['OC', 'OC', 'GR', 'RI', 'GR', 'GR']),
+    probeTile('estuary', ['OC', 'OC', 'GR', 'GR', 'RI', 'GR']),
+  ],
+  openOcean: [probeTile('openOcean', ['OC', 'OC', 'OC', 'OC', 'OC', 'OC'])],
+  harbor: [
+    probeTile('harbor', ['OC', 'OC', 'GR', 'HO', 'GR', 'GR'], [0]),
+    probeTile('harbor', ['OC', 'OC', 'GR', 'HO', 'RA', 'GR'], [0]),
+  ],
+  lane: LANE_PROBES,
+};
+
+function archetypePlaceable(board, archetype, config) {
+  const probes = ARCHETYPE_PROBES[archetype];
+  if (!probes) return true;
+  return probes.some((p) => validPlacements(board, p, config).length > 0);
+}
+
 // 60% of quest-reward tiles are themed to a currently active quest; the other
 // 40% return null and the caller draws from the stage table instead.
-export function drawQuestRewardTile(state, rng, config = CONFIG) {
+// env carries the board (fun-fix round 4): themed selection is gated to
+// archetypes with >= 1 legal placement; if no active quest has a placeable
+// theme — or the generated variant itself turns out unplaceable — the draw
+// falls back to the stage table (return null). env null/empty board = no gate.
+export function drawQuestRewardTile(state, env, rng, config = CONFIG) {
   if (rng() >= config.quests.themedRewardRate) return null;
-  const candidates = activeQuests(state).filter((q) => q.terrain ? FLAG_THEMES[q.terrain] : THEMES[q.id]);
+  const board = env && env.board && env.board.size > 0 ? env.board : null;
+  const placeable = board ? (a) => archetypePlaceable(board, a, config) : () => true;
+  const themesFor = (q) => {
+    const themes = q.terrain ? [FLAG_THEMES[q.terrain]] : THEMES[q.id];
+    return themes ? themes.filter(placeable) : [];
+  };
+  const candidates = activeQuests(state).filter((q) => themesFor(q).length > 0);
   if (!candidates.length) return null;
   const q = pick(rng, candidates);
-  const archetype = q.terrain ? FLAG_THEMES[q.terrain] : pick(rng, THEMES[q.id]);
+  const themes = themesFor(q);
+  const archetype = themes.length === 1 ? themes[0] : pick(rng, themes);
   let tile = makeTile(archetype, rng, config);
   const rot = Math.floor(rng() * 6);
   if (rot) tile = rotateTile(tile, rot);
+  // variant safety net: the probe said the archetype fits, but the generated
+  // split/rotation is what actually ships — never hand back a dead reward
+  if (board && validPlacements(board, tile, config).length === 0) return null;
   return tile;
 }

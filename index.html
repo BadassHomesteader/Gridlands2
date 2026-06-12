@@ -185,6 +185,21 @@
   }
   #streak-dots i.on { background: var(--gold); }
 
+  /* trade income pip — completed routes pay on every placement (§5.7) */
+  #trade-pill { color: var(--sea-deep); background: rgba(214, 236, 250, 0.6); }
+  #trade-pill b { color: #0e4a77; margin-left: 1px; }
+  #trade-pill #trade-rate { font-size: 11px; font-weight: 800; margin-left: 4px; opacity: .85; }
+  #trade-pill.pulse { animation: tradePulse .6s cubic-bezier(.2, .9, .3, 1.3); }
+  @keyframes tradePulse {
+    0% { transform: scale(1); }
+    35% {
+      transform: scale(1.2);
+      background: rgba(154, 208, 245, 0.95);
+      box-shadow: 0 0 0 4px rgba(42, 127, 184, 0.25), 0 0 18px rgba(86, 166, 222, 0.8);
+    }
+    100% { transform: scale(1); }
+  }
+
   /* ---------- stage banner + toasts ---------- */
   #stage-banner {
     position: absolute; top: 16%; left: 50%; transform: translateX(-50%);
@@ -307,7 +322,9 @@
   #popups { position: fixed; inset: 0; pointer-events: none; z-index: 20; }
   .popup {
     position: absolute; transform: translate(-50%, -50%);
-    font-size: 29px; font-weight: 900; white-space: nowrap; text-align: center;
+    /* --mag scales the popup with the actual payout (set by ui.popup) */
+    font-size: calc(29px * var(--mag, 1));
+    font-weight: 900; white-space: nowrap; text-align: center;
     text-shadow:
       0 1px 0 #fff, 0 -1px 0 #fff, 1px 0 0 #fff, -1px 0 0 #fff,
       0 0 8px rgba(255, 255, 255, 0.9), 0 3px 18px rgba(255, 250, 235, 0.95);
@@ -326,10 +343,11 @@
   }
   .popup.edges { color: #2e7c1d; }
   .popup.streak { color: #b97f06; }
-  .popup.perfect { color: #e0701a; font-size: 38px; }
+  .popup.perfect { color: #e0701a; } /* size now payout-scaled via --mag */
   .popup.structures { color: #135a8e; }
   .popup.quests { color: #7a4fb5; }
   .popup.bad { color: var(--clay); }
+  .popup.mega { filter: drop-shadow(0 0 16px rgba(246, 195, 68, 0.9)); }
 
   /* ---------- game over ---------- */
   #gameover-screen {
@@ -389,8 +407,9 @@
     <div class="label">SCORE</div>
     <div id="score">0</div>
     <div class="pills">
-      <span class="pill">Tiles <b id="stack">45</b></span>
+      <span class="pill">Tiles <b id="stack">56</b></span>
       <span class="pill" id="streak-pill">Streak <b id="streak">0</b><span id="streak-dots"></span></span>
+      <span class="pill hidden" id="trade-pill" title="Trade income — open routes pay on every placement">⚓<b id="trade-routes">0</b><span id="trade-rate">+2/tile</span></span>
     </div>
   </div>
 
@@ -432,8 +451,8 @@
     <div class="tideline-rule"></div>
 
     <div class="start-row" id="tile-count-row">
-      <label for="tile-count">Tile stack <output id="tile-count-out">45</output></label>
-      <input type="range" id="tile-count" min="15" max="100" step="1" value="45">
+      <label for="tile-count">Tile stack <output id="tile-count-out">56</output></label>
+      <input type="range" id="tile-count" min="15" max="100" step="1" value="56">
     </div>
 
     <div class="start-row toggle-row">

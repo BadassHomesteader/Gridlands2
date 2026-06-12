@@ -36,7 +36,7 @@ CDN, procedural audio, everything else vanilla ES modules.
 | Arrows / Right-drag | Pan |
 | Scroll | Zoom |
 | Ctrl+Z | Undo last placement |
-| D | Discard tile (−25) |
+| D | Discard tile (costs points) |
 | M | Mute |
 
 Match edges to score; rivers, rails, mountains, ocean, and lanes must match their own

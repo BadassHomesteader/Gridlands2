@@ -21,8 +21,9 @@
 // touches only its canvas (plus window key/resize listeners for pan controls).
 
 import * as THREE from 'three';
-import { key, parseKey, toWorld, neighbors } from '../core/hex.js';
-import { placementRelations } from '../core/board.js';
+import { key, parseKey, neighbor, toWorld, neighbors } from '../core/hex.js';
+import { placementRelations, canPlace } from '../core/board.js';
+import { rotateTile } from '../core/tiles.js';
 import { buildTileMesh, setSnowcap, HEX_SIZE } from './tilemesh.js';
 import { createEffects } from './effects.js';
 
@@ -35,6 +36,8 @@ const GRAVITY = 30;
 const GROUND_Y = -0.42;
 
 const stripGeo = new THREE.BoxGeometry(0.68, 0.1, 0.13);
+const buoyGeo = new THREE.SphereGeometry(0.1, 7, 6);
+const buoyCapGeo = new THREE.SphereGeometry(0.052, 6, 5);
 const stripMats = {
   green: new THREE.MeshBasicMaterial({ color: 0x35d07a, toneMapped: false }),
   grey: new THREE.MeshBasicMaterial({ color: 0xb9c2c8, toneMapped: false }),
@@ -175,6 +178,32 @@ export function init(canvas, game) {
   });
   const hints = new Map(); // "q,r" -> mesh
 
+  // perfect-spot affordance: an empty cell with >=5 placed neighbors is a
+  // forming §5.3 ring — its frontier ring turns gold. When the tile IN HAND
+  // can legally fill it (any rotation), the ring pulses hot as an invitation.
+  // Fillability is re-evaluated on board change / draw / rotate, never per-frame.
+  const perfectSpots = new Map(); // "q,r" -> { mesh, hot }
+  const spotSoftMat = new THREE.MeshBasicMaterial({
+    color: 0xe0a83c, transparent: true, opacity: 0.3,
+    depthWrite: false, side: THREE.DoubleSide,
+  });
+  const spotHotMat = new THREE.MeshBasicMaterial({
+    color: 0xffce5c, transparent: true, opacity: 0.6,
+    depthWrite: false, side: THREE.DoubleSide,
+  });
+
+  // dock teaching hint: buoy breadcrumbs on the open-water cells a lane could
+  // still reach from a harbor's dock (soft edges facing those cells would
+  // brick the route — the costliest hidden lesson in the fun review).
+  const dockGroup = new THREE.Group();
+  scene.add(dockGroup);
+  let dockHint = null; // { items: [{ mesh, baseY, phase, mats }], expiresAt, fromGhost }
+  const OC_PROBE = {
+    id: 'probe-oc-hint', archetype: 'openOcean',
+    edges: ['OC', 'OC', 'OC', 'OC', 'OC', 'OC'],
+    dockEdges: [], crane: false, flag: null, seed: 0, rotation: 0,
+  };
+
   const tiles = new Map(); // "q,r" -> THREE.Group
   const effects = createEffects({ scene, game, tiles, sun, hemi, groundMat });
 
@@ -241,6 +270,133 @@ export function init(canvas, game) {
       hintGroup.add(m);
       hints.set(k, m);
     }
+    updatePerfectSpots();
+  }
+
+  // Gold rings on near-complete rings (replaces the tan hint on those cells,
+  // so the frontier system never doubles up). Cheap: a handful of cells x6
+  // core canPlace calls, run only when board or hand changes.
+  function updatePerfectSpots() {
+    const want = new Map(); // "q,r" -> hot
+    if (!game.over) {
+      const counts = new Map();
+      for (const k of game.board.keys()) {
+        const { q, r } = parseKey(k);
+        for (const n of neighbors(q, r)) {
+          const nk = key(n.q, n.r);
+          if (!game.board.has(nk)) counts.set(nk, (counts.get(nk) || 0) + 1);
+        }
+      }
+      for (const [k, count] of counts) {
+        if (count < 5) continue;
+        let hot = false;
+        const hand = game.currentTile;
+        if (hand) {
+          const { q, r } = parseKey(k);
+          for (let rot = 0; rot < 6 && !hot; rot++) {
+            const t = rot === 0 ? hand : rotateTile(hand, rot);
+            hot = canPlace(game.board, t, q, r, game.config).legal;
+          }
+        }
+        want.set(k, hot);
+      }
+    }
+    for (const [k, s] of perfectSpots) {
+      if (want.has(k)) continue;
+      hintGroup.remove(s.mesh);
+      perfectSpots.delete(k);
+      const h = hints.get(k);
+      if (h) h.visible = true;
+    }
+    for (const [k, hot] of want) {
+      let s = perfectSpots.get(k);
+      if (!s) {
+        const { q, r } = parseKey(k);
+        const m = new THREE.Mesh(hintGeo, spotSoftMat);
+        const p = cellToWorld(q, r);
+        // float at the hole's rim (just above tile tops) so the invitation
+        // is never occluded by the very neighbors that formed the ring
+        m.position.set(p.x, 0.19, p.z);
+        hintGroup.add(m);
+        s = { mesh: m, hot: false };
+        perfectSpots.set(k, s);
+      }
+      s.hot = hot;
+      s.mesh.material = hot ? spotHotMat : spotSoftMat;
+      const h = hints.get(k);
+      if (h) h.visible = false; // gold ring stands in for the tan hint here
+    }
+  }
+
+  // --- dock teaching hint (buoy breadcrumbs) ---
+
+  // BFS outward from each dock edge, 2-3 cells: through already-open water
+  // (placed OC/LA tiles) and empty cells that can still legally become open
+  // water (the OC probe — a soft edge facing the cell fails it, which IS the
+  // lesson). Cells with no placed neighbor yet count as open sea, so the
+  // breadcrumb fans 2-3 cells out even from a brand-new coast.
+  function waterReach(q0, r0, tile, maxDepth = 3) {
+    const out = [];
+    const seen = new Set([key(q0, r0)]);
+    let layer = (tile.dockEdges || []).map((dir) => neighbor(q0, r0, dir));
+    for (let depth = 1; depth <= maxDepth && layer.length; depth++) {
+      const next = [];
+      for (const cell of layer) {
+        const k = key(cell.q, cell.r);
+        if (seen.has(k)) continue;
+        seen.add(k);
+        const placed = game.board.get(k);
+        if (placed) {
+          // sail straight through existing open water, no breadcrumb needed
+          if (!placed.edges.some((e) => e === 'OC' || e === 'LA')) continue;
+        } else {
+          const check = canPlace(game.board, OC_PROBE, cell.q, cell.r, game.config);
+          // only edge conflicts brick a cell; mere distance from the board
+          // ("not adjacent...") is still future open water
+          if (check.reasons.some((why) => !why.startsWith('not adjacent'))) continue;
+          out.push({ q: cell.q, r: cell.r, depth });
+        }
+        for (const n of neighbors(cell.q, cell.r)) next.push(n);
+      }
+      layer = next;
+    }
+    return out;
+  }
+
+  function clearDockHint(onlyGhost = false) {
+    if (!dockHint || (onlyGhost && !dockHint.fromGhost)) return;
+    for (const it of dockHint.items) {
+      dockGroup.remove(it.mesh);
+      for (const m of it.mats) m.dispose();
+    }
+    dockHint = null;
+  }
+
+  function showDockHint(q, r, tile, { ttl = Infinity, fromGhost = false } = {}) {
+    clearDockHint();
+    const cells = waterReach(q, r, tile);
+    if (!cells.length) return;
+    const items = [];
+    for (const c of cells) {
+      const p = cellToWorld(c.q, c.r);
+      const fade = Math.max(0.35, 1 - (c.depth - 1) * 0.28); // faint with distance
+      const bodyMat = new THREE.MeshBasicMaterial({
+        color: 0xf5f0e8, transparent: true, opacity: 0.8 * fade, depthWrite: false,
+      });
+      const capMat = new THREE.MeshBasicMaterial({
+        color: 0xe74c3c, transparent: true, opacity: 0.8 * fade, depthWrite: false,
+      });
+      const g = new THREE.Group();
+      const body = new THREE.Mesh(buoyGeo, bodyMat);
+      const cap = new THREE.Mesh(buoyCapGeo, capMat);
+      cap.position.y = 0.1;
+      g.add(body, cap);
+      const baseY = 0.12;
+      g.position.set(p.x, baseY, p.z);
+      dockGroup.add(g);
+      items.push({ mesh: g, baseY, phase: ((c.q * 7 + c.r * 13) % 6 + 6) % 6, mats: [bodyMat, capMat] });
+    }
+    dockHint = { items, expiresAt: ttl === Infinity ? Infinity : time + ttl, fromGhost };
   }
 
   function boardChanged() {
@@ -293,6 +449,7 @@ export function init(canvas, game) {
   }
 
   function rebuild() {
+    clearDockHint(); // a timed hint must not outlive an undone harbor
     for (const g of tiles.values()) scene.remove(g);
     tiles.clear();
     for (const [k, tile] of game.board) {
@@ -306,6 +463,7 @@ export function init(canvas, game) {
   // --- ghost tile with per-edge legality colors (DESIGN §3.3) ---
 
   function clearGhost() {
+    clearDockHint(true); // ghost-sourced dock hints live and die with the ghost
     if (!ghost) return;
     scene.remove(ghost.group);
     for (const m of ghost.mats) m.dispose();
@@ -338,6 +496,10 @@ export function init(canvas, game) {
     group.position.set(p.x, 0.5, p.z);
     scene.add(group);
     ghost = { group, mats, q, r, shake: 0 };
+    // hovering a Harbor: show where lanes could still reach this dock
+    if (tile.dockEdges && tile.dockEdges.length) {
+      showDockHint(q, r, tile, { fromGhost: true });
+    }
   }
 
   // Red-flash deny animation; edges defaults to the currently illegal dirs.
@@ -509,6 +671,24 @@ export function init(canvas, game) {
     zoom += (targetZoom - zoom) * Math.min(1, d * 8);
 
     hintMat.opacity = 0.24 + 0.07 * Math.sin(time * 1.6); // soft frontier pulse
+    // perfect-spot shimmer: gentle gold for forming rings, a stronger beat
+    // (opacity + slight breathing scale) when the tile in hand fits
+    spotSoftMat.opacity = 0.26 + 0.1 * Math.sin(time * 2.1);
+    spotHotMat.opacity = 0.52 + 0.26 * Math.sin(time * 3.4);
+    if (perfectSpots.size) {
+      const sc = 1 + 0.045 * Math.sin(time * 3.4);
+      for (const s of perfectSpots.values()) s.mesh.scale.setScalar(s.hot ? sc : 1);
+    }
+    // dock breadcrumbs bob like real buoys; timed hints expire here
+    if (dockHint) {
+      if (time >= dockHint.expiresAt) {
+        clearDockHint();
+      } else {
+        for (const it of dockHint.items) {
+          it.mesh.position.y = it.baseY + Math.sin(time * 2.2 + it.phase) * 0.035;
+        }
+      }
+    }
 
     if (flight) {
       flight.t += d / flight.dur;
@@ -565,6 +745,11 @@ export function init(canvas, game) {
         if (!drop.landed) {
           drop.landed = true;
           effects.placementBurst(drop.q, drop.r);
+          // a freshly landed Harbor teaches its sea path for a few seconds
+          const landedTile = drop.result && drop.result.tile;
+          if (landedTile && landedTile.dockEdges && landedTile.dockEdges.length) {
+            showDockHint(drop.q, drop.r, landedTile, { ttl: 4 });
+          }
           effects.emit({ type: 'tileLanded', q: drop.q, r: drop.r, result: drop.result });
         }
         if (drop.vy > 2.2) {
@@ -590,10 +775,14 @@ export function init(canvas, game) {
     window.removeEventListener('keyup', onKeyUp);
     window.removeEventListener('resize', resize);
     clearGhost();
+    clearDockHint();
+    scene.remove(dockGroup);
     groundMat.map.dispose();
     groundMat.dispose();
     hintGeo.dispose();
     hintMat.dispose();
+    spotSoftMat.dispose();
+    spotHotMat.dispose();
     effects.dispose();
     renderer.dispose();
   }
@@ -619,6 +808,7 @@ export function init(canvas, game) {
     onEvent: effects.onEvent, // shipHorn / sting / tallyRide / deny / tileLanded...
 
     setGhost, clearGhost, denyFlash,
+    refreshPerfectSpots: updatePerfectSpots, // call on draw/rotate (hand changed)
     placeTileVisual, addTileVisual, rebuild,
     cameraFlyAlong,
     setSnowcap, // re-exported for completeness

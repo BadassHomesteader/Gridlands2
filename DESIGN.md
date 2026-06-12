@@ -226,6 +226,14 @@ fitness target).
 - Junction bonuses (one-time per edge pair): **source +30**, **estuary +40**,
   **port call +25**, **cliff +10** (cliff mode only).
 
+**AMENDED (fun-fix round 4):** source/estuary junctions intentionally stay at their
+retuned small payout (+3 in `CONFIG`) — raising them back toward a band that matches
+their fanfare fails the §10 structures-share cap and subsidizes the greedy bot
+(`sim/TUNING.md` round 4, experiment J1). The resolution is presentational:
+**ceremony scales down to match payout** (§9) — celebration magnitude is derived
+from the actual points in the `PlacementResult`, so a +3 junction gets a small
+chime, never fireworks. The fanfare was the bug, not the number.
+
 ### 5.2 Clean streak
 
 Crisp predicate (replaces the undefined "no junction wasted" clause): a **clean**
@@ -338,6 +346,24 @@ cozy mandate (§1). It is silently replaced with a fresh quest, free of charge (
 reroll spent, no penalty; if no replacement fits the guard, it stays). UI: the slot
 fades and re-deals like a flag fading — no fanfare.
 
+**AMENDED (fun-fix round 4) — the active-quest guard also covers geometric death,
+not just pace** (`quests.metricDeadSealed` / `quests.oneShotSatisfiable`,
+`sim/TUNING.md` round 4):
+
+- **`sealed`** — a numeric quest whose tracked (largest) candidate is sealed (zero
+  open edges, the §6.3 flag-fade detection generalized to any group/network) below
+  target, while no unsealed candidate — nor any union of them — could reach the
+  target with the tiles remaining (optimistic reach: sum of unsealed sizes +
+  tilesRemaining). Hypothetical from-scratch structures deliberately do NOT rescue
+  a quest.
+- **`unsatisfiable`** — a one-shot that can no longer complete in principle
+  (Open the Route with no growable incomplete route, no legal lane entry, or too
+  few tiles left). Also checked on spawn, so dead one-shots are never dealt or
+  rerolled into.
+- UI: `sealed`/`unsatisfiable` refreshes are the loud ones — they toast
+  **"a new opportunity"** (cozy mandate, never a loss); `pace` keeps the silent
+  fade above. The refresh stays free either way.
+
 **Rerolls:** 3 free standard-quest rerolls per session — 1 granted at start, +1 at the
 Tide transition, +1 at Voyage. The comeback valve for dead quests.
 
@@ -385,6 +411,13 @@ target, the flag fades quietly — no penalty (cozy mandate).
 **60%** (TUNE) of quest-reward tiles are drawn themed to a currently active quest
 (e.g., active Long River → river tiles); 40% from the stage table. This is the main
 lever for tuning quest completion rate.
+
+**AMENDED (fun-fix round 4):** themed selection is gated to archetypes with **≥1
+legal placement on the current board** (per-archetype probe tiles covering every
+structurally distinct §4 variant); if no themed archetype is placeable, the draw
+falls back to the stage table. A reward tile that cannot land is a silently burned
+reward (it could only exit via winds-shift) — measured to cut the winds-shift rate
+roughly threefold (`sim/TUNING.md` round 4).
 
 ---
 

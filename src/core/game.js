@@ -119,12 +119,13 @@ export class Game {
     };
   }
 
-  // One tile from the stack: pending quest rewards first (60% themed), then
+  // One tile from the stack: pending quest rewards first (60% themed, gated
+  // to archetypes placeable on the current board — fun-fix round 4), then
   // the dynamic stage-weight table. Override point for tests.
   _generateTile(gs) {
     if (this.questRewardPending > 0) {
       this.questRewardPending--;
-      const themed = drawQuestRewardTile(this.quests, this.rng, this.config);
+      const themed = drawQuestRewardTile(this.quests, this._questEnv(), this.rng, this.config);
       if (themed) return themed;
     }
     return drawTile(this.rng, gs, this.config);
@@ -235,6 +236,12 @@ export class Game {
     result.questsCompleted = qres.completed;
     result.questsProgressed = qres.progressed;
     result.questsRefreshed = qres.refreshed;
+    // distinct event per refresh (fun-fix round 4): 'sealed'/'unsatisfiable'
+    // are the loud ones — UI toasts "a new opportunity" (cozy mandate, never
+    // a loss); 'pace' keeps the round-2 silent fade-and-redeal.
+    for (const rf of qres.refreshed) {
+      events.push({ type: 'questRefreshed', reason: rf.reason, oldId: rf.old.id, freshId: rf.fresh.id });
+    }
     result.breakdown.quests = qres.points;
     result.points += qres.points;
     this.channels.quests += qres.points;

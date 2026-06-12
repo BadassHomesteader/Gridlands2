@@ -455,3 +455,213 @@ criteria met again, flip still deferred (sealed median mixed across seeds:
 119/119 unit tests green (no test edits needed this round). Experiment
 overrides live in each `run-r3-*.json`'s `meta.configOverrides`. No git
 operations; no servers left on 8714–8719.
+
+## Round 4 (fun-fix)
+
+Fairness fixes from the fun review (8/10, real 84-placement session), not a
+score-tuning round. 200 games/policy, `node sim/balance.mjs --games=200
+--policy=all --seed=…`; verified on fresh seeds **4001 and 4007** (final
+tables in `run-r4-final-4001/-4007.json`, with `--modes`). Implemented in
+`src/core/quests.js` / `game.js`; experiment JSONs keep their overrides in
+`meta.configOverrides` as usual. 125/125 unit tests green (119 + 6 new).
+
+### Fix 1 — sealed-quest auto-refresh (top fun complaint)
+
+A standard quest tracking a geometrically sealed structure (zero open edges —
+the flag-fade detection, generalized to any group/network via the shared
+`groupSealed`) squatted dead in the panel for ~30 placements. The dead-quest
+guard now covers geometric death, not just pace: `quests.metricDeadSealed`
+fires when the tracked (largest) candidate is sealed below target AND no
+unsealed candidate could reach the target with the tiles remaining
+(optimistic bound: unsealed candidates can all merge, so their reach is
+sum(unsealed sizes) + tilesRemaining — never condemns a quest a perfect
+player could complete from what is on the board). The §6.1 largest-group
+subtlety is honored; hypothetical from-scratch structures deliberately do
+NOT rescue a quest — the first implementation counted them and fired ~0
+times in 60 telemetry games, i.e. it would not have fixed the complaint;
+the brief-faithful predicate fires ~0.3/run. Refresh is free (no reroll, no
+penalty) and emits a distinct `questRefreshed` event with `reason: 'sealed'`
+in `PlacementResult.events` (+ `reason` on `questsRefreshed` entries) so the
+UI can toast "a new opportunity" — cozy mandate, never feels like loss. The
+round-2 pace refresh keeps its silent fade as `reason: 'pace'`.
+
+### Fix 2 — one-shot quest satisfiability
+
+'Open the Route' (lane ≥3) spawned after the only route had completed at
+length 2 — completed routes are closed. `quests.oneShotSatisfiable` is
+checked on spawn (`availableDefs`, so dead one-shots are never dealt or
+rerolled into) and on every placement (auto-refresh with
+`reason: 'unsatisfiable'`, same free guard event). For openTheRoute: only
+incomplete routes with an open end count as growable (a route end facing
+plain ocean can never be docked — completion requires zero open-water ends,
+which never decrease), and a brand-new route requires a lane tile to be
+admissible somewhere (`laneCanEnter`, both §4 lane variants probed) AND
+tilesRemaining ≥ minLaneLength. riversEnd/twinHarbors stay in-principle
+satisfiable (stage gates + the twinHarbors board check cover their spawns).
+
+### Fix 3 — themed reward placeability
+
+Themed quest-reward tiles were drawn blind (an epic-themed Lane tile arrived
+pre-Tide with zero ocean → guaranteed winds-shift silently burning the
+reward). `drawQuestRewardTile` now takes the quest env and themes only
+toward archetypes with ≥1 legal placement (per-archetype probe tiles
+covering every structurally distinct §4 variant; all-soft layouts share one
+probe since soft↔soft legality is layout-independent), with a final
+placeability check on the generated variant; otherwise the draw falls back
+to the stage table. Measured effect: winds-shift rate 0.26–0.31% → 0.09–0.12%.
+
+### Fix 4 — junction payout experiment: REJECTED, ceremony should be muted instead
+
+The balance call: source/estuary junctions pay +3 but receive fanfare. Tried
+source/estuary 3/3 → 6/6 (bottom of the requested 6–10 band) with a
+structures-channel-internal paydown sized net-zero from measured event rates
+(riverCompleted perTile 2→1, portCall 16→11, peakCrowned 33→29, tradeRoute
+250→225/extra 45→40, snowline 10→7, laneCompleted perTile 46→43 —
+`run-r4-expJ1-4001.json`). Result: structures share 14.4 → **15.4 FAIL**
+(cap 15) and greedy +55 (1580 → 1634; greedy banks 11–12 source/estuary
+junctions per run, questAware 15.5, so every junction point is
+greedy-subsidized). The §10 structures cap makes the raise zero-sum INSIDE
+the channel: paying for it means halving portCall and cutting
+peak/snowline/trade — recreating the exact ceremony-exceeds-payout problem
+on the other celebrated moments, with no seed margin even at the band's
+bottom. Paydown outside the channel (riverCompleted is inside; endgame and
+streak are outside) cannot help: it shrinks the total and pushes the
+structures share UP. **Decision: revert fully (config.js was never touched —
+the experiment lived in an override file); source/estuary stay +3 and
+"ceremony should be muted instead"** — recorded for the UX agent's pattern:
+their payout-scaled ceremony gives the +3 junctions a small chime rather
+than fireworks, so either outcome lands coherently. The fanfare was the bug,
+not the number.
+
+### Config change
+
+| Knob | Old → New | Why |
+|---|---|---|
+| quests.reward.base | 8 → 6 | the sealed/one-shot refresh converts dead slots into completable quests; extra completions pushed the quests share to 30.1pp (cap 30) on 4001. Points-only — the flat-3 TILES are the placement floor's lifeline and stay untouched. After: 29.5/29.0 |
+
+### Accounting & determinism
+
+Sealed/unsatisfiable refreshes join the round-2 accounting: auto-refreshed
+quests count as offered-but-not-completed in the sim's completion denominator.
+questAware auto-refreshes ~2.4/run total (sealed ~0.3, unsatisfiable ~0.05,
+rest pace). Guards consume no rng themselves and are pure functions of board
+state; same-seed runs verified bit-identical (score/placements/draws).
+
+### Gate table — final 4001 / 4007 (vs round-3 final 3001/3007 carry-in)
+
+| Gate | Target | Final 4001 | Final 4007 | Result |
+|---|---|---|---|---|
+| median score questAware | 2800 ±20% | 2395 | 2422 | PASS/PASS |
+| median score greedy | ~1400 ±20% | 1615 | 1648 | PASS/PASS |
+| landOnly/questAware (HARD) | ≤ 0.55 | 0.265 | 0.274 | PASS/PASS |
+| distribution edges | 45 ±5pp | 41.2 | 42.2 | PASS/PASS |
+| distribution streaks+perfects | 15 ±5pp | 11.0 | 11.4 | PASS/PASS |
+| distribution quests | 25 ±5pp | 29.5 | 29.0 | PASS/PASS |
+| distribution structures | 10 ±5pp | 14.5 | 13.5 | PASS/PASS |
+| distribution endGame | 5 ±5pp | 3.8 | 3.9 | PASS/PASS |
+| winds-shift rate | < 2% | 0.09% | 0.11% | PASS/PASS |
+| dead-board rate | < 0.5% | 0.00% | 0.00% | PASS/PASS |
+| dead-board mtn-heavy (repel) | < 1% | 0.00% | 0.00% | PASS/PASS |
+| placements p10 | ≥ 72 | 75.0 | 75.0 | PASS/PASS |
+| placements p90 (HARD) | ≤ 135 | 129.2 | 128.0 | PASS/PASS |
+| reproduction R (HARD) | < 0.65 | 0.416 | 0.421 | PASS/PASS |
+| quest completion | 60–75% | 62.4% | 62.9% | PASS/PASS |
+| epic completion | ~55% ±15pp | 52% | 54% | PASS/PASS |
+| engagement river / lane / peak | ≥70/50/40% | 84/74/70 | 83/68/67 | PASS/PASS |
+| ADOPT mountainCoast repel | mtn-heavy dead < 1% | 0.00% PASS | 0.00% PASS | repel stays default |
+| ADOPT laneOceanRule sealed | strand <1% & laneEng within 10% | 0.09%, 73 vs 74 PASS | 0.13%, 64 vs 68 PASS | criteria met; flip still deferred |
+
+ALL §10 gate rows green on both seeds. Pace 16.9/16.7 min (13–17);
+perfects 0.94/0.97 per run.
+
+### DESIGN AMENDMENTS needed in DESIGN.md (owned outside this round's scope)
+
+1. §6.1 active-quest guard: extend the round-2 amendment with the sealed and
+   one-shot-satisfiability reasons above; sealed/unsatisfiable refreshes get
+   the "a new opportunity" toast (loud), pace keeps the silent fade.
+2. §6.4 themed rewards: themed selection is gated to archetypes with ≥1
+   legal placement on the current board, else stage table.
+3. §5.1/§9: junction payout intentionally stays +3 — ceremony (item 3-ish
+   fanfare) must scale down to match payout, not the reverse.
+
+### Housekeeping
+
+No git operations; no servers started (8714–8719 clear). Experiment and
+final results: `run-r4-baseline-4001.json` (fixes 1–3, pre-experiment),
+`run-r4-expJ1-4001.json` (rejected junction package),
+`run-r4-final-4001/-4007.json` (shipped config, with modes).
+
+## Round 4 verification (final gate check, fresh seeds 5001/5007)
+
+Final-verifier pass over the round-4 state. 200 games/policy,
+`node sim/balance.mjs --games=200 --policy=all --seed=…` (+`--modes` for the
+adoption rows). 125/125 unit tests green throughout.
+
+### Gate regression found and fixed: quests share 30.4pp on seed 5001
+
+Carry-in config (round-4 final) on fresh seeds: 5007 fully green (quests
+28.8) but **5001 failed distribution quests at 30.4pp vs cap 30** — the
+round-4 close left only ~0.5pp of margin (29.5/29.0) against ~1.6pp of
+seed-to-seed variance. Not an accounting bug: `channels.quests` accumulates
+`qres.points` at a single site, and the same code path measured 29.5/29.0 in
+round 4.
+
+- **Experiment (rejected): `reward.base` 6 → 4** (round 4's own lever).
+  Fixed the share (29.0 on 5001) but **broke quest completion on 5007
+  (60.0% vs ≥ 60)** — the questAware bot weighs `q.points`, so cutting
+  STANDARD rewards cuts standard-quest pursuit. Reverted.
+- **Kept: points-only trims in channels the completion gate never counts.**
+  `reward.base` stays 6; `flag.points` 22 → 18; epic points island/trans
+  400 → 360, crown 280 → 250. Tiles untouched everywhere (flags 2, epics
+  4/4/4 — the placement floor's lifeline). Epic completion is
+  feasibility-driven (the bot's epic-plan bonus still dwarfs every
+  alternative placement), measured unharmed: 60%/56% vs the 40–70 band.
+
+### Both-seed final results (run-5001.json / run-5007.json, with --modes)
+
+| Gate | Target | Final 5001 | Final 5007 |
+|---|---|---|---|
+| median qa | 2800 ±20% | 2448 | 2381 |
+| median greedy | ~1400 ±20% | 1658 | 1646 |
+| landOnly/qa (HARD) | ≤ 0.55 | 0.265 | 0.286 |
+| edges | 45 ±5pp | 41.9 | 42.0 |
+| streaks+perfects | 15 ±5pp | 11.5 | 11.4 |
+| quests | 25 ±5pp | **29.6** (was 30.4 FAIL) | 28.5 |
+| structures | 10 ±5pp | 13.2 | 14.3 |
+| endGame | 5 ±5pp | 3.8 | 3.7 |
+| winds-shift | < 2% | 0.10% | 0.15% |
+| dead-board / mtn-heavy | <0.5% / <1% | 0/0 | 0/0 |
+| placements p10 | ≥ 72 | 78.9 | 75.9 |
+| placements p90 (HARD) | ≤ 135 | 130.1 | 134.1 |
+| reproduction R (HARD) | < 0.65 | 0.420 | 0.413 |
+| quest completion | 60–75% | 60.9% | 60.8% |
+| epic completion | ~55% ±15pp | 60% | 56% |
+| river / lane / peak | ≥70/50/40% | 84/71/68 | 83/71/67 |
+| ADOPT repel | mtn-heavy <1% | 0.00% PASS | 0.00% PASS |
+| ADOPT sealed | strand<1% & laneEng within 10% | 0.11%, 69 vs 71 PASS | 0.15%, 70 vs 71 PASS |
+
+ALL §10 gate rows green on both seeds. Pace 17.0 min; perfects ~1.0/run.
+Repel stays default; sealed criteria met again, flip still deferred.
+
+### Correctness fixes landed alongside (UI/copy vs CONFIG, the authority)
+
+1. **`questRefreshed` toast was never wired** — core emitted the round-4
+   event but `main.js handleEvents` had no case for it, so the
+   sealed/unsatisfiable "a new opportunity" toast (the round's headline UX
+   promise) never appeared. Wired: loud toast for `sealed`/`unsatisfiable`,
+   `pace` keeps the silent fade. Verified end-to-end in a real browser
+   session (forced sealed HO group → guard fired `reason:'sealed'` → toast
+   on screen).
+2. **Start-screen stack drift** — the slider/HUD defaulted to 45 while every
+   gate above is verified at `CONFIG.stack.start` 56; a real player's
+   default run was 11 tiles short of the tuned economy. Slider range +
+   default now read from CONFIG at boot; `testStart` likewise.
+3. **DESIGN.md amendments from the round-4 list landed**: §6.1
+   (sealed/unsatisfiable guard reasons + toast), §6.4 (themed-reward
+   placeability gate), §5.1 (junctions stay +3, ceremony scales down — the
+   fanfare was the bug, not the number).
+
+### Housekeeping
+
+No git operations; ports 8714–8719 clear after every tool run. Final
+results overwrite `sim/results/run-5001.json` / `run-5007.json`.

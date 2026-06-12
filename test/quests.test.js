@@ -1,22 +1,24 @@
 // Quests (DESIGN §6): spawn targets + reward formula, availability stages,
-// +2 scaling capped at base+8, dead-quest guard, one-shot pool exit, rerolls,
-// flagged-tile quests (grow / sealed fade), Epic pool, themed reward draws.
+// +2 scaling capped at base+8, dead-quest guard (pace + sealed + one-shot
+// satisfiability), one-shot pool exit, rerolls, flagged-tile quests
+// (grow / sealed fade), Epic pool, themed reward draws (placeability-gated).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { CONFIG } from '../src/core/config.js';
 import { mulberry32 } from '../src/core/rng.js';
-import { createBoard } from '../src/core/board.js';
+import { createBoard, validPlacements } from '../src/core/board.js';
 import { tradeRoutePairKey } from '../src/core/scoring.js';
 import {
   createQuestState, spawnStandardQuest, processPlacement, useReroll, grantReroll,
   measureMetric, isIslandRinged, twinHarborsOnBoard, drawQuestRewardTile, activeQuests,
+  metricDeadSealed, oneShotSatisfiable, laneCanEnter,
 } from '../src/core/quests.js';
 import { tt, put, cfg, ALL } from './helpers.js';
 
 function bare() {
   return {
     standard: [], epic: null, flags: [],
-    completedStandard: 0, oneShotCompletions: {},
+    completedStandard: 0, oneShotCompletions: {}, autoRefreshed: 0,
     rerolls: 1, rerollsUsed: 0, flagsCompleted: 0, flagsFaded: 0,
   };
 }
@@ -335,15 +337,166 @@ test('createQuestState: 3 distinct standard quests, one epic, starting rerolls',
 test('themed reward draws: 60% themed to an active quest, else stage table', () => {
   const st = bare();
   st.standard = [{ id: 'longRiver', metric: 'network:RI', target: 6, progress: 0, points: 160, tiles: 4 }];
-  const themed = drawQuestRewardTile(st, seq([0.1]));
+  const themed = drawQuestRewardTile(st, env(), seq([0.1]));
   assert.equal(themed.archetype, 'river');
-  assert.equal(drawQuestRewardTile(st, seq([0.99])), null, 'roll >= 0.6 -> stage table');
+  assert.equal(drawQuestRewardTile(st, env(), seq([0.99])), null, 'roll >= 0.6 -> stage table');
 
   const flagged = bare();
   flagged.flags = [{ id: 'flag:0,0', flag: true, key: '0,0', terrain: 'HO', target: 5, progress: 1, points: 60, tiles: 2 }];
-  assert.equal(drawQuestRewardTile(flagged, seq([0.0, 0.0])).archetype, 'hamlet');
+  assert.equal(drawQuestRewardTile(flagged, env(), seq([0.0, 0.0])).archetype, 'hamlet');
 
-  assert.equal(drawQuestRewardTile(bare(), seq([0.0])), null, 'no active quests');
+  assert.equal(drawQuestRewardTile(bare(), env(), seq([0.0])), null, 'no active quests');
+});
+
+// --- fun-fix round 4 -------------------------------------------------------
+
+// Sealed FO row of `n` tiles: every FO edge faces a placed neighbor, so the
+// group can never grow (the structure the fun review saw squat for ~30
+// placements). Ends carry one inward FO edge, middles two.
+function sealedForestRow(b, n) {
+  put(b, ['FO', 'GR', 'GR', 'GR', 'GR', 'GR'], 0, 0);
+  for (let q = 1; q < n - 1; q++) put(b, ['FO', 'GR', 'GR', 'FO', 'GR', 'GR'], q, 0);
+  put(b, ['GR', 'GR', 'GR', 'FO', 'GR', 'GR'], n - 1, 0);
+}
+
+test('metricDeadSealed: tracked sealed structure + no live candidate that can reach target', () => {
+  const b = createBoard();
+  sealedForestRow(b, 4);
+  // the fun-review case: the ONLY candidate is sealed below target — dead
+  // immediately, no matter how many tiles remain ("a new one could start"
+  // never materializes; that fantasy is what squatted for ~30 placements)
+  assert.equal(metricDeadSealed(b, 'group:FO', 6, 30), true);
+  assert.equal(metricDeadSealed(b, 'group:FO', 4, 30), false, 'frozen best already satisfies');
+  assert.equal(metricDeadSealed(b, 'group:MT', 5, 30), false, 'absent terrain: nothing sealed tracked');
+
+  put(b, ['FO', 'GR', 'GR', 'GR', 'GR', 'GR'], 0, 5); // unsealed singleton far away
+  assert.equal(metricDeadSealed(b, 'group:FO', 6, 30), false, 'live candidate can still reach 6');
+  assert.equal(metricDeadSealed(b, 'group:FO', 6, 3), true, 'live candidate out of budget: 1 + 3 < 6');
+
+  const open = createBoard(); // only unsealed candidates: pace guard territory
+  put(open, ['FO', 'GR', 'GR', 'GR', 'GR', 'GR'], 0, 0);
+  assert.equal(metricDeadSealed(open, 'group:FO', 99, 2), false);
+});
+
+test('sealed-quest auto-refresh: geometrically dead quest re-deals free, reason sealed', () => {
+  const conf = cfg({}, (c) => {
+    c.quests.standard = c.quests.standard.filter((d) => ['bigForest', 'bigField'].includes(d.id));
+    c.quests.deadGuardDivisor = 1; // pace allowance = tilesRemaining: pace guard cannot fire
+    c.quests.autoRefreshSlack = 0;
+  });
+  const b = createBoard();
+  sealedForestRow(b, 10);
+  const st = bare();
+  st.standard.push({ id: 'bigForest', metric: 'group:FO', target: 12, progress: 10, points: 44, tiles: 3 });
+  const e = env({ board: b, tilesRemaining: 8 });
+  const placed = put(b, ALL('GR'), 0, 1);
+  const res = processPlacement(st, e, result(placed, 0, 1), mulberry32(5), conf);
+  // pace guard alone keeps it (12 - 10 = 2 <= 8); the sealed guard
+  // (tracked structure frozen at 10 < 12, no live candidate) kills it
+  assert.equal(res.refreshed.length, 1);
+  assert.equal(res.refreshed[0].reason, 'sealed');
+  assert.equal(res.refreshed[0].old.id, 'bigForest');
+  assert.equal(st.standard.length, 1);
+  assert.equal(st.standard[0].id, 'bigField');
+  assert.equal(res.points, 0, 'free — never feels like loss');
+  assert.equal(st.autoRefreshed, 1);
+});
+
+test('sealed guard spares quests an unsealed candidate could still satisfy', () => {
+  const conf = cfg({}, (c) => {
+    c.quests.standard = c.quests.standard.filter((d) => ['bigForest', 'bigField'].includes(d.id));
+    c.quests.deadGuardDivisor = 1;
+    c.quests.autoRefreshSlack = 0;
+  });
+  const b = createBoard();
+  sealedForestRow(b, 10); // largest candidate is sealed...
+  put(b, ['FO', 'GR', 'GR', 'GR', 'GR', 'GR'], 0, 5); // ...but a live one exists
+  const st = bare();
+  st.standard.push({ id: 'bigForest', metric: 'group:FO', target: 12, progress: 10, points: 44, tiles: 3 });
+  const e = env({ board: b, tilesRemaining: 11 }); // ceiling = max(10, 1 + 11) = 12 >= 12
+  const placed = put(b, ALL('GR'), 0, 1);
+  const res = processPlacement(st, e, result(placed, 0, 1), mulberry32(5), conf);
+  assert.equal(res.refreshed.length, 0);
+  assert.equal(st.standard[0].id, 'bigForest');
+  assert.equal(st.autoRefreshed, 0);
+});
+
+test('oneShotSatisfiable openTheRoute: closed routes, doomed ends, lane entry, budget', () => {
+  const q = { id: 'openTheRoute', oneShot: true, minLaneLength: 3 };
+  assert.equal(oneShotSatisfiable(q, createBoard(), 100), true, 'empty board: lanes can enter');
+  assert.equal(oneShotSatisfiable(q, createBoard(), 2), false, 'budget below the required length');
+
+  const land = createBoard();
+  put(land, ALL('GR'), 0, 0);
+  assert.equal(laneCanEnter(land), false, 'no lane variant fits a landlocked board');
+  assert.equal(oneShotSatisfiable(q, land, 100), false, 'no route can ever be constructed');
+
+  // growable: an incomplete route with an open end extends to the target
+  const open = createBoard();
+  put(open, ['LA', 'OC', 'OC', 'LA', 'OC', 'OC'], 0, 0);
+  assert.equal(oneShotSatisfiable(q, open, 2), true, '1 lane tile + 2 budget reaches 3');
+
+  // doomed: both ends face plain ocean — completion needs zero open-water
+  // ends, and a placed plain-Oc edge can never become a dock
+  const doomed = createBoard();
+  put(doomed, ['LA', 'OC', 'OC', 'LA', 'OC', 'OC'], 0, 0);
+  put(doomed, ALL('OC'), 1, 0);
+  put(doomed, ALL('OC'), -1, 0);
+  assert.equal(oneShotSatisfiable(q, doomed, 2), false, 'doomed route does not count as growable');
+  assert.equal(oneShotSatisfiable(q, doomed, 50), true, 'a brand-new route is still constructible here');
+
+  // others stay in-principle satisfiable
+  assert.equal(oneShotSatisfiable({ id: 'riversEnd', oneShot: true }, land, 1), true);
+});
+
+test('openTheRoute neither spawns nor survives on a board where it cannot complete', () => {
+  const only = pool('openTheRoute');
+  const land = createBoard();
+  put(land, ALL('GR'), 0, 0);
+  // spawn guard: excluded even with lanes unlocked
+  assert.equal(
+    spawnStandardQuest(bare(), env({ board: land, stage: 'voyage', lanesUnlocked: true, tilesRemaining: 100 }), mulberry32(1), only),
+    null);
+
+  // active guard: refreshes with the distinct reason, free of charge
+  const conf = pool('openTheRoute', 'bigForest');
+  const st = bare();
+  st.standard.push({ id: 'openTheRoute', oneShot: true, target: 1, progress: 0, points: 250, tiles: 3, minLaneLength: 3 });
+  const placed = put(land, ALL('GR'), 0, 1);
+  const res = processPlacement(st, env({ board: land, tilesRemaining: 50 }), result(placed, 0, 1), mulberry32(3), conf);
+  assert.equal(res.refreshed.length, 1);
+  assert.equal(res.refreshed[0].reason, 'unsatisfiable');
+  assert.equal(res.refreshed[0].old.id, 'openTheRoute');
+  assert.equal(st.standard[0].id, 'bigForest');
+  assert.equal(res.points, 0);
+});
+
+test('themed rewards only theme toward archetypes placeable on the board', () => {
+  // the fun-review case: transcontinental epic active pre-Tide (zero ocean) —
+  // a themed Lane tile would be a guaranteed winds-shift burning the reward
+  const st = bare();
+  st.epic = { id: 'transcontinental', epic: true, target: 1, progress: 0, done: false, points: 400, tiles: 4 };
+  const land = createBoard();
+  put(land, ALL('GR'), 0, 0);
+  const e = env({ board: land });
+  let drew = 0;
+  for (let s = 1; s <= 40; s++) {
+    const tile = drawQuestRewardTile(st, e, mulberry32(s));
+    if (!tile) continue;
+    drew++;
+    assert.notEqual(tile.archetype, 'lane', 'lane has no legal placement pre-ocean');
+    assert.ok(validPlacements(land, tile).length > 0, 'shipped reward is actually placeable');
+  }
+  assert.ok(drew > 0, 'rail/harbor themes still flow');
+
+  // every theme unplaceable (lane + harbor vs a lone mountain) -> stage table
+  const mt = createBoard();
+  put(mt, ALL('MT'), 0, 0);
+  const st2 = bare();
+  st2.standard = [{ id: 'openTheRoute', oneShot: true, target: 1, progress: 0, points: 250, tiles: 3 }];
+  for (let s = 1; s <= 20; s++) {
+    assert.equal(drawQuestRewardTile(st2, env({ board: mt }), mulberry32(s)), null);
+  }
 });
 
 test('measureMetric: groups vs networks', () => {
